@@ -1,0 +1,9 @@
+"download.py"
+Downloads all data for PM10 and PM2.5 for all EU countries, filtered by aggregation type (daily) and saves them as parquet files in the data/daily directory.
+
+Because some countries are missing daily aggregation for PM10 and PM2.5 there are 2 other scripts called "download_hourly_pm2-5.py" and "download_hourly_pm10.py" which download hourly data for the countries that are missing.
+
+"aggregate.py"
+Aggregates the hourly data for PM10 and PM2.5 to daily data and saves them as parquet files in the data/daily directory.
+
+This way we now have daily data for PM10 and PM2.5 for all EU countries, which we can load into DuckDB and use for our dashboard.
