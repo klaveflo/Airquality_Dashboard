@@ -13,3 +13,6 @@ __pycache__/
 
 # Ignore Data folder
 data/
+
+# Ignore .streamlit folder holding secrets
+.streamlit/

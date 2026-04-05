@@ -5,7 +5,13 @@ import datetime
 import pydeck as pdk
 import altair as alt
 import time
-from query_lmm import ask_lmm_about_peak
+from query_llm import ask_llm_about_peak
+import os
+import streamlit as st
+
+# Securely inject the API key from Streamlit's secrets into the environment
+if "GEMINI_API_KEY" in st.secrets:
+    os.environ["GEMINI_API_KEY"] = st.secrets["GEMINI_API_KEY"]
 
 # Set up the dashboard page
 st.set_page_config(page_title="Air Quality Dashboard", layout="wide")
@@ -33,7 +39,7 @@ def get_connection():
 
 conn = get_connection()
 
-tab1, tab2 = st.tabs(["Live Data", "Historic Data"])
+tab1, tab2 = st.tabs(["Historic Data", "Live Data"])
 
 # 2. Query functions
 def apply_styling(df):
@@ -251,13 +257,13 @@ with tab1:
             with col_data:
                 st.write(f"**Viewing:** {selected_date}")
                 
-                # --- NEW LMM QUERY BOX FEATURE ---
+                # --- NEW LLM QUERY BOX FEATURE ---
                 st.markdown("---")
                 st.subheader("Ask AI about peaks")
                 user_query = st.text_input("Curious about a peak? Ask here:", value=f"What could be the cause of the {selected_metric} peak on {selected_date}?")
                 if st.button("Ask AI"):
-                    with st.spinner("Analyzing with LMM..."):
-                        response = ask_lmm_about_peak(str(selected_date), selected_metric)
+                    with st.spinner("Analyzing with LLM..."):
+                        response = ask_llm_about_peak(str(selected_date), selected_metric)
                         st.info(response)
 
 with tab2:

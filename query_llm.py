@@ -1,9 +1,9 @@
 import os
 from google import genai
 
-def ask_lmm_about_peak(date_str, metric, context_data=None):
+def ask_llm_about_peak(date_str, metric, context_data=None):
     """
-    Sends a query to an LMM asking for an explanation of a peak on a given date.
+    Sends a query to an LLM asking for an explanation of a peak on a given date.
     Returns a 1-2 sentence response.
     """
     if not os.environ.get("GEMINI_API_KEY"):
