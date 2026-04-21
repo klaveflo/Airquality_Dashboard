@@ -13,3 +13,6 @@ data/
 
 # Ignore .streamlit folder holding secrets
 .streamlit/
+
+# Uncleaned station metadata
+station_metadata.csv
