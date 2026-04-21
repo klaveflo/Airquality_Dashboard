@@ -8,9 +8,6 @@ env/
 # Ignore pychache
 __pycache__/
 
-# Ignore Databases
-*.db
-
 # Ignore Data folder
 data/
 
