@@ -27,20 +27,20 @@ EEA_METADATA_URL = ("https://discomap.eea.europa.eu/App/AQViewer/download"
 COUNTRIES  = ["AT", "DE", "FR", "IT", "ES", "CH"]
 POLLUTANTS = ["PM10", "PM2.5", "NO2", "O3"]
 
-# European Air Quality Index (EAQI) — (upper µg/m³, label, hex colour)
+# European Air Quality Index (EAQI) — 6-tier official EEA scale (upper µg/m³, label, hex colour)
 EAQI_THRESHOLDS = {
-    "PM2.5": [(10, "Good", "#79BC6A"), (20, "Fair", "#BBCF4C"), (25, "Moderate", "#EEC20B"),
-              (50, "Poor", "#F29305"), (float("inf"), "Very Poor", "#E8416F")],
-    "PM10":  [(20, "Good", "#79BC6A"), (40, "Fair", "#BBCF4C"), (50, "Moderate", "#EEC20B"),
-              (100, "Poor", "#F29305"), (float("inf"), "Very Poor", "#E8416F")],
-    "NO2":   [(40, "Good", "#79BC6A"), (90, "Fair", "#BBCF4C"), (120, "Moderate", "#EEC20B"),
-              (230, "Poor", "#F29305"), (float("inf"), "Very Poor", "#E8416F")],
-    "O3":    [(50, "Good", "#79BC6A"), (100, "Fair", "#BBCF4C"), (130, "Moderate", "#EEC20B"),
-              (240, "Poor", "#F29305"), (float("inf"), "Very Poor", "#E8416F")],
+    "PM2.5": [(15, "Good", "#79BC6A"), (35, "Fair", "#BBCF4C"), (75, "Moderate", "#EEC20B"),
+              (115, "Poor", "#F29305"), (150, "Very Poor", "#E8416F"), (float("inf"), "Extremely Poor", "#A50034")],
+    "PM10":  [(25, "Good", "#79BC6A"), (50, "Fair", "#BBCF4C"), (90, "Moderate", "#EEC20B"),
+              (180, "Poor", "#F29305"), (280, "Very Poor", "#E8416F"), (float("inf"), "Extremely Poor", "#A50034")],
+    "NO2":   [(40, "Good", "#79BC6A"), (100, "Fair", "#BBCF4C"), (200, "Moderate", "#EEC20B"),
+              (400, "Poor", "#F29305"), (1000, "Very Poor", "#E8416F"), (float("inf"), "Extremely Poor", "#A50034")],
+    "O3":    [(60, "Good", "#79BC6A"), (120, "Fair", "#BBCF4C"), (180, "Moderate", "#EEC20B"),
+              (240, "Poor", "#F29305"), (320, "Very Poor", "#E8416F"), (float("inf"), "Extremely Poor", "#A50034")],
 }
-EAQI_LABELS  = ["Good", "Fair", "Moderate", "Poor", "Very Poor"]
+EAQI_LABELS  = ["Good", "Fair", "Moderate", "Poor", "Very Poor", "Extremely Poor"]
 EAQI_COLOURS = {"Good": "#79BC6A", "Fair": "#BBCF4C", "Moderate": "#EEC20B",
-                "Poor": "#F29305", "Very Poor": "#E8416F"}
+                "Poor": "#F29305", "Very Poor": "#E8416F", "Extremely Poor": "#A50034"}
 _AREA_SYMBOLS = {"urban": "●", "suburban": "◆", "rural": "▲",
                  "rural-nearcity": "▲", "rural_nearcity": "▲"}
 
@@ -89,39 +89,107 @@ def render_map(df):
     view       = pdk.ViewState(latitude=50.0, longitude=10.0, zoom=3.5, pitch=0)
     fill_color = "[color_r, color_g, color_b, color_a]" if "color_r" in df.columns else [200, 200, 200, 180]
 
-    # All stations — filled circle coloured by EAQI category
-    base = pdk.Layer(
-        "ScatterplotLayer",
-        data=df,
-        id="air-quality-layer",
-        get_position=["lon", "lat"],
-        get_radius=6000,
-        radius_min_pixels=5,
-        radius_max_pixels=16,
-        get_fill_color=fill_color,
-        pickable=True,
-        transitions={"getFillColor": 600},
-    )
+    layers = []
 
-    # Rural / suburban stations — white ring overlay to distinguish from urban
-    non_urban = (df[df["area_type"].isin(["rural","rural-nearcity","rural_nearcity","suburban"])]
-                 if "area_type" in df.columns else pd.DataFrame())
-    ring = pdk.Layer(
-        "ScatterplotLayer",
-        data=non_urban,
-        id="ring-layer",
-        get_position=["lon", "lat"],
-        get_radius=6000,
-        radius_min_pixels=5,
-        radius_max_pixels=16,
-        stroked=True,
-        filled=False,
-        get_line_color=[255, 255, 255, 200],
-        line_width_min_pixels=2,
-        pickable=False,
-    )
+    # Layer 1: Urban stations — filled circles in EAQI colours
+    if "area_type" in df.columns:
+        urban_df = df[df["area_type"].isin(["urban", "Urban"])].copy() if not df.empty else pd.DataFrame()
+    else:
+        urban_df = pd.DataFrame()
 
-    layers = ([base] if not df.empty else []) + ([ring] if not non_urban.empty else [])
+    if not urban_df.empty:
+        urban_layer = pdk.Layer(
+            "ScatterplotLayer",
+            data=urban_df,
+            id="urban-layer",
+            get_position=["lon", "lat"],
+            get_radius=6000,
+            radius_min_pixels=5,
+            radius_max_pixels=16,
+            get_fill_color=fill_color,
+            filled=True,
+            stroked=False,
+            pickable=True,
+            transitions={"getFillColor": 600},
+        )
+        layers.append(urban_layer)
+
+    # Layer 2: Suburban stations — filled circles with thick white outline
+    if "area_type" in df.columns:
+        suburban_df = df[df["area_type"].isin(["suburban", "Suburban"])].copy() if not df.empty else pd.DataFrame()
+    else:
+        suburban_df = pd.DataFrame()
+
+    if not suburban_df.empty:
+        suburban_layer = pdk.Layer(
+            "ScatterplotLayer",
+            data=suburban_df,
+            id="suburban-layer",
+            get_position=["lon", "lat"],
+            get_radius=6000,
+            radius_min_pixels=5,
+            radius_max_pixels=16,
+            get_fill_color=fill_color,
+            filled=True,
+            stroked=True,
+            get_line_color=[255, 255, 255, 220],
+            line_width_min_pixels=2,
+            line_width_max_pixels=4,
+            pickable=True,
+            transitions={"getFillColor": 600},
+        )
+        layers.append(suburban_layer)
+
+    # Layer 3: Rural stations — filled circles with lighter outline
+    if "area_type" in df.columns:
+        rural_df = df[df["area_type"].isin(["rural", "Rural", "rural-nearcity", "rural_nearcity"])].copy() if not df.empty else pd.DataFrame()
+    else:
+        rural_df = pd.DataFrame()
+
+    if not rural_df.empty:
+        rural_layer = pdk.Layer(
+            "ScatterplotLayer",
+            data=rural_df,
+            id="rural-layer",
+            get_position=["lon", "lat"],
+            get_radius=6000,
+            radius_min_pixels=5,
+            radius_max_pixels=16,
+            get_fill_color=fill_color,
+            filled=True,
+            stroked=True,
+            get_line_color=[180, 180, 180, 180],
+            line_width_min_pixels=1,
+            line_width_max_pixels=2,
+            pickable=True,
+            transitions={"getFillColor": 600},
+        )
+        layers.append(rural_layer)
+
+    # Fallback layer for stations with missing/unknown area type
+    if "area_type" in df.columns:
+        unknown_df = df[~df["area_type"].isin(["urban", "Urban", "suburban", "Suburban",
+                                                "rural", "Rural", "rural-nearcity", "rural_nearcity"])].copy() if not df.empty else pd.DataFrame()
+    else:
+        unknown_df = df.copy()
+
+    if not unknown_df.empty:
+        unknown_layer = pdk.Layer(
+            "ScatterplotLayer",
+            data=unknown_df,
+            id="unknown-layer",
+            get_position=["lon", "lat"],
+            get_radius=6000,
+            radius_min_pixels=5,
+            radius_max_pixels=16,
+            get_fill_color=fill_color,
+            filled=True,
+            stroked=False,
+            pickable=True,
+            transitions={"getFillColor": 600},
+        )
+        layers.append(unknown_layer)
+
     return pdk.Deck(
         layers=layers,
         map_style=None,
@@ -538,7 +606,9 @@ with col_map:
         # Click-to-select only when not animating
         if anim_idx is None:
             sel          = getattr(getattr(map_state, "selection", None), "objects", {}) or {}
-            clicked_objs = sel.get("air-quality-layer", [])
+            # Check all layer IDs: urban, suburban, rural, unknown
+            clicked_objs = (sel.get("urban-layer", []) + sel.get("suburban-layer", []) +
+                           sel.get("rural-layer", []) + sel.get("unknown-layer", []))
             if clicked_objs:
                 clicked_name = clicked_objs[0].get("station_name")
                 if clicked_name and clicked_name not in st.session_state.selected_stations:
