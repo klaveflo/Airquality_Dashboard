@@ -606,14 +606,14 @@ with col_map:
             render_map(df_display),
             height=450,
             selection_mode="single-object",
-            on_select="rerun" if (anim_idx is None and not playing_changed) else 'ignore',
+            on_select="rerun",
             key="live_map",
         )
         st.markdown(render_legend(selected_pollutant), unsafe_allow_html=True)
 
         # Click-to-select only when not animating
-        if anim_idx is None:
-            sel          = getattr(getattr(map_state, "selection", None), "objects", {}) or {}
+        if anim_idx is None and not playing_changed:  # Klicks nur verarbeiten wenn nicht animiert
+            sel = getattr(getattr(map_state, "selection", None), "objects", {}) or {}
             # Check all three station type layers
             clicked_objs = sel.get("urban-layer", []) or sel.get("suburban-layer", []) or sel.get("rural-layer", [])
             if clicked_objs:
