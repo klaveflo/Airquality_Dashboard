@@ -1,9 +1,0 @@
-"app_basic_map.py"
-Very basic map example using the "ipyleaflet" library. 
-Does not work since it does not load the map in time and does not display all markers on the map.
-
-"app.py"
-Basic app exploring some shiny UI elements. Tried to implement user reactivity (if user changes the dropdown, the map should update) but it does not work. The map does not update when the user changes the dropdown selection.
-
-"app_test.py"
-Pretty much the same as app.py but focuses in trying to implement the reactivity of the map. It does not work either, the map does not update when the user changes the date selection.

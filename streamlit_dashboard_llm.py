@@ -1,3 +1,5 @@
+# Import libraries
+################################################################################
 import streamlit as st
 import duckdb
 import pandas as pd
@@ -7,16 +9,17 @@ import altair as alt
 import time
 from query_llm import ask_llm_about_peak
 import os
-import streamlit as st
 
-# Securely inject the API key from Streamlit's secrets into the environment
+# Import API key
+################################################################################
 if "GEMINI_API_KEY" in st.secrets:
     os.environ["GEMINI_API_KEY"] = st.secrets["GEMINI_API_KEY"]
 
 # Set up the dashboard page
+################################################################################
 st.set_page_config(page_title="Air Quality Dashboard", layout="wide")
 
-# Custom CSS to reduce top spacing and make everything more compact to prevent scrolling
+# Custom CSS to reduce top spacing and make everything more compact
 st.markdown("""
     <style>
         .block-container {
@@ -31,17 +34,10 @@ st.markdown("""
 
 st.title("Air Quality Map Dashboard")
 
-# Connect to DuckDB (cached so it doesn't reconnect on every interaction)
-@st.cache_resource
-def get_connection():
-    # adjust the path to your database if it's located elsewhere
-    return duckdb.connect("eeaopt.db", read_only=True)
-
-conn = get_connection()
-
 tab1, tab2 = st.tabs(["Historic Data", "Live Data"])
 
-# 2. Query functions
+# Function to apply styling based on value for map visualization
+################################################################################
 def apply_styling(df):
     if not df.empty and "Value" in df.columns:
         val = df["Value"].fillna(0)
@@ -71,6 +67,15 @@ def apply_styling(df):
         df.loc[is_missing, "color_a"] = 0
     return df
 
+# Connect to DuckDB and define query functions
+################################################################################
+@st.cache_resource
+def get_connection():
+    # adjust the path to your database if it's located elsewhere
+    return duckdb.connect("eeaopt.db", read_only=True)
+
+conn = get_connection()
+
 @st.cache_data
 def get_master_stations(table_name, start, end):
     query = f"""
@@ -97,10 +102,10 @@ def get_map_data(date_str, table_name, _master_df=None):
     """
     df = conn.execute(query).fetch_df()
     if _master_df is not None and not _master_df.empty:
-        df = df.groupby(['lat', 'lon'], as_index=False)['Value'].mean()
-        merged = pd.merge(_master_df, df, on=['lat', 'lon'], how='left')
+        # Keep only the first value for each station (lat, lon)
+        df = df.drop_duplicates(subset=["lat", "lon"])
+        merged = pd.merge(_master_df, df, on=["lat", "lon"], how="left")
         return apply_styling(merged)
-        
     return apply_styling(df)
 
 @st.cache_data
@@ -118,6 +123,8 @@ def get_daily_averages(table_name, start, end):
     df["Date"] = pd.to_datetime(df["Date"])
     return df
 
+# Functions to render map
+################################################################################
 def render_map(df_to_render, default_lat=50.0, default_lon=10.0):
     static_view_state = pdk.ViewState(
         latitude=default_lat,
@@ -139,6 +146,8 @@ def render_map(df_to_render, default_lat=50.0, default_lon=10.0):
     )
     return pdk.Deck(layers=[layer] if not df_to_render.empty else [], map_style=None, initial_view_state=static_view_state, tooltip={"text": "Value: {Value:.2f}"})
 
+# Functions to render chart
+################################################################################
 def render_chart(df_avg, current_date):
     if df_avg.empty:
         return alt.Chart(pd.DataFrame({'Date': [], 'AvgValue': []})).mark_line().properties(height=280)
