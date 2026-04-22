@@ -27,20 +27,21 @@ EEA_METADATA_URL = ("https://discomap.eea.europa.eu/App/AQViewer/download"
 COUNTRIES  = ["AT", "DE", "FR", "IT", "ES", "CH"]
 POLLUTANTS = ["PM10", "PM2.5", "NO2", "O3"]
 
-# European Air Quality Index (EAQI) — (upper µg/m³, label, hex colour)
+# European Air Quality Index (EAQI) — 6-tier system (upper µg/m³, label, hex colour)
+# Blue-to-red colorblind-friendly palette
 EAQI_THRESHOLDS = {
-    "PM2.5": [(10, "Good", "#79BC6A"), (20, "Fair", "#BBCF4C"), (25, "Moderate", "#EEC20B"),
-              (50, "Poor", "#F29305"), (float("inf"), "Very Poor", "#E8416F")],
-    "PM10":  [(20, "Good", "#79BC6A"), (40, "Fair", "#BBCF4C"), (50, "Moderate", "#EEC20B"),
-              (100, "Poor", "#F29305"), (float("inf"), "Very Poor", "#E8416F")],
-    "NO2":   [(40, "Good", "#79BC6A"), (90, "Fair", "#BBCF4C"), (120, "Moderate", "#EEC20B"),
-              (230, "Poor", "#F29305"), (float("inf"), "Very Poor", "#E8416F")],
-    "O3":    [(50, "Good", "#79BC6A"), (100, "Fair", "#BBCF4C"), (130, "Moderate", "#EEC20B"),
-              (240, "Poor", "#F29305"), (float("inf"), "Very Poor", "#E8416F")],
+    "PM2.5": [(5, "Good", "#4477AA"), (15, "Fair", "#77AADD"), (50, "Moderate", "#DDCC77"),
+              (90, "Poor", "#EE7733"), (140, "Very poor", "#CC3311"), (float("inf"), "Extremely poor", "#882255")],
+    "PM10":  [(15, "Good", "#4477AA"), (45, "Fair", "#77AADD"), (120, "Moderate", "#DDCC77"),
+              (195, "Poor", "#EE7733"), (270, "Very poor", "#CC3311"), (float("inf"), "Extremely poor", "#882255")],
+    "NO2":   [(10, "Good", "#4477AA"), (25, "Fair", "#77AADD"), (60, "Moderate", "#DDCC77"),
+              (100, "Poor", "#EE7733"), (150, "Very poor", "#CC3311"), (float("inf"), "Extremely poor", "#882255")],
+    "O3":    [(60, "Good", "#4477AA"), (100, "Fair", "#77AADD"), (120, "Moderate", "#DDCC77"),
+              (160, "Poor", "#EE7733"), (180, "Very poor", "#CC3311"), (float("inf"), "Extremely poor", "#882255")],
 }
-EAQI_LABELS  = ["Good", "Fair", "Moderate", "Poor", "Very Poor"]
-EAQI_COLOURS = {"Good": "#79BC6A", "Fair": "#BBCF4C", "Moderate": "#EEC20B",
-                "Poor": "#F29305", "Very Poor": "#E8416F"}
+EAQI_LABELS  = ["Good", "Fair", "Moderate", "Poor", "Very poor", "Extremely poor"]
+EAQI_COLOURS = {"Good": "#4477AA", "Fair": "#77AADD", "Moderate": "#DDCC77",
+                "Poor": "#EE7733", "Very poor": "#CC3311", "Extremely poor": "#882255"}
 _AREA_SYMBOLS = {"urban": "●", "suburban": "◆", "rural": "▲",
                  "rural-nearcity": "▲", "rural_nearcity": "▲"}
 
@@ -89,39 +90,101 @@ def render_map(df):
     view       = pdk.ViewState(latitude=50.0, longitude=10.0, zoom=3.5, pitch=0)
     fill_color = "[color_r, color_g, color_b, color_a]" if "color_r" in df.columns else [200, 200, 200, 180]
 
-    # All stations — filled circle coloured by EAQI category
-    base = pdk.Layer(
-        "ScatterplotLayer",
-        data=df,
-        id="air-quality-layer",
-        get_position=["lon", "lat"],
-        get_radius=6000,
-        radius_min_pixels=5,
-        radius_max_pixels=16,
-        get_fill_color=fill_color,
-        pickable=True,
-        transitions={"getFillColor": 600},
-    )
+    layers = []
 
-    # Rural / suburban stations — white ring overlay to distinguish from urban
-    non_urban = (df[df["area_type"].isin(["rural","rural-nearcity","rural_nearcity","suburban"])]
-                 if "area_type" in df.columns else pd.DataFrame())
-    ring = pdk.Layer(
-        "ScatterplotLayer",
-        data=non_urban,
-        id="ring-layer",
-        get_position=["lon", "lat"],
-        get_radius=6000,
-        radius_min_pixels=5,
-        radius_max_pixels=16,
-        stroked=True,
-        filled=False,
-        get_line_color=[255, 255, 255, 200],
-        line_width_min_pixels=2,
-        pickable=False,
-    )
+    if not df.empty and "area_type" in df.columns:
+        # Normalize area_type for consistent categorization
+        df_norm = df.copy()
+        df_norm["area_type_norm"] = df_norm["area_type"].str.lower().fillna("unknown")
 
-    layers = ([base] if not df.empty else []) + ([ring] if not non_urban.empty else [])
+        # Urban layer — largest circles, no ring (always created for consistent layer order)
+        df_urban = df_norm[df_norm["area_type_norm"].isin(["urban", "unknown"])]
+        layers.append(pdk.Layer(
+            "ScatterplotLayer",
+            data=df_urban,
+            id="urban-layer",
+            get_position=["lon", "lat"],
+            get_radius=7000,
+            radius_min_pixels=5,
+            radius_max_pixels=16,
+            get_fill_color=fill_color,
+            pickable=True,
+            transitions={"getFillColor": 0},
+        ))
+
+        # Suburban layer — medium circles with thin ring (always created)
+        df_suburban = df_norm[df_norm["area_type_norm"] == "suburban"]
+        layers.append(pdk.Layer(
+            "ScatterplotLayer",
+            data=df_suburban,
+            id="suburban-layer",
+            get_position=["lon", "lat"],
+            get_radius=6000,
+            radius_min_pixels=5,
+            radius_max_pixels=16,
+            get_fill_color=fill_color,
+            pickable=True,
+            transitions={"getFillColor": 0},
+        ))
+        layers.append(pdk.Layer(
+            "ScatterplotLayer",
+            data=df_suburban,
+            id="suburban-ring",
+            get_position=["lon", "lat"],
+            get_radius=6000,
+            radius_min_pixels=5,
+            radius_max_pixels=16,
+            stroked=True,
+            filled=False,
+            get_line_color=[255, 255, 255, 200],
+            line_width_min_pixels=2,
+            pickable=False,
+        ))
+
+        # Rural layer — smallest circles with thicker ring (always created)
+        df_rural = df_norm[df_norm["area_type_norm"].isin(["rural", "rural-nearcity", "rural_nearcity"])]
+        layers.append(pdk.Layer(
+            "ScatterplotLayer",
+            data=df_rural,
+            id="rural-layer",
+            get_position=["lon", "lat"],
+            get_radius=5000,
+            radius_min_pixels=5,
+            radius_max_pixels=16,
+            get_fill_color=fill_color,
+            pickable=True,
+            transitions={"getFillColor": 0},
+        ))
+        layers.append(pdk.Layer(
+            "ScatterplotLayer",
+            data=df_rural,
+            id="rural-ring",
+            get_position=["lon", "lat"],
+            get_radius=5000,
+            radius_min_pixels=5,
+            radius_max_pixels=16,
+            stroked=True,
+            filled=False,
+            get_line_color=[255, 255, 255, 200],
+            line_width_min_pixels=3,
+            pickable=False,
+        ))
+    else:
+        # Fallback to single layer if no area_type data
+        if not df.empty:
+            layers.append(pdk.Layer(
+                "ScatterplotLayer",
+                data=df,
+                id="air-quality-layer",
+                get_position=["lon", "lat"],
+                get_radius=6000,
+                radius_min_pixels=5,
+                radius_max_pixels=16,
+                get_fill_color=fill_color,
+                pickable=True,
+                transitions={"getFillColor": 0},
+            ))
+
     return pdk.Deck(
         layers=layers,
         map_style=None,
@@ -145,7 +208,7 @@ def render_legend(pollutant):
         '<div style="margin-top:8px;font-size:12px;color:#ccc;line-height:2.2">'
         f'<b>{pollutant} Air Quality Index (µg/m³)</b><br>'
         + " &thinsp;".join(swatches)
-        + '<br><span style="color:#aaa;font-size:11px">● Urban &nbsp;◆ Suburban &nbsp;▲ Rural</span>'
+        + '<br><span style="color:#aaa;font-size:11px;margin-top:6px;display:block"><b>Station types:</b> ● Large (urban) • ◯ Medium + ring (suburban) • ◯ Small + thick ring (rural)</span>'
         + "</div>"
     )
 
@@ -230,6 +293,17 @@ def get_station_coords():
                     continue
         return None
 
+    # ── Try local CSV first (fast, no network required) ──
+    try:
+        df_local = pd.read_csv("station_metadata_clean.csv", low_memory=False)
+        result = _extract_coords(df_local, "local_csv")
+        if not result.empty:
+            print(f"[get_station_coords] Loaded {len(result)} stations from local CSV (station_metadata_clean.csv)")
+            return result
+    except Exception as exc:
+        print(f"[get_station_coords] Local CSV loading failed: {exc}")
+
+    # ── Fall back to EEA API ──
     try:
         raw = requests.get(EEA_METADATA_URL, timeout=30,
                            headers={"Accept": "text/csv,application/octet-stream,*/*"})
@@ -398,6 +472,8 @@ def build_hour_display(hour, df_meta, df_all, pollutant):
 
 
 # ── Session state ──────────────────────────────────────────────────────────────
+if "prev_playing" not in st.session_state:
+    st.session_state.prev_playing = False
 
 for _k, _v in [("selected_stations", []), ("playing", False),
                ("loaded_key", None), ("anim_idx", 0), ("hour_slider", None)]:
@@ -524,8 +600,8 @@ with col_map:
                 "Use the manual picker on the right to compare stations.")
     else:
         st.write(map_label)
-        # Single unconditional call — same widget-tree position on every run
-        # → pydeck component never remounts → user's zoom/pan is preserved
+        # Disable on_select during animation or after Play/Stop button click
+        playing_changed = st.session_state.playing != st.session_state.prev_playing
         map_state = st.pydeck_chart(
             render_map(df_display),
             height=450,
@@ -536,9 +612,10 @@ with col_map:
         st.markdown(render_legend(selected_pollutant), unsafe_allow_html=True)
 
         # Click-to-select only when not animating
-        if anim_idx is None:
-            sel          = getattr(getattr(map_state, "selection", None), "objects", {}) or {}
-            clicked_objs = sel.get("air-quality-layer", [])
+        if anim_idx is None and not playing_changed:  # Klicks nur verarbeiten wenn nicht animiert
+            sel = getattr(getattr(map_state, "selection", None), "objects", {}) or {}
+            # Check all three station type layers
+            clicked_objs = sel.get("urban-layer", []) or sel.get("suburban-layer", []) or sel.get("rural-layer", [])
             if clicked_objs:
                 clicked_name = clicked_objs[0].get("station_name")
                 if clicked_name and clicked_name not in st.session_state.selected_stations:
@@ -555,7 +632,7 @@ if anim_idx is not None:
         st.session_state.playing = False
     else:
         st.session_state.anim_idx = next_idx
-        time.sleep(0.25)
+        time.sleep(0.5)  # Adjust delay between frames as needed
         st.rerun()
 
 
@@ -622,7 +699,7 @@ if st.session_state.selected_stations and not df_all.empty:
 
             st.altair_chart(
                 alt.layer(bands, line).resolve_scale(color="independent"),
-                use_container_width=True,
+                width='stretch',
             )
 
         with c_right:
@@ -654,7 +731,7 @@ if st.session_state.selected_stations and not df_all.empty:
                 )
                 .properties(height=90, title="Air Quality Breakdown (share of hours)")
             )
-            st.altair_chart(breakdown_chart, use_container_width=True)
+            st.altair_chart(breakdown_chart, width='stretch')
 
             # Headline summary cards — one per selected station
             st.write("")
@@ -681,3 +758,6 @@ if st.session_state.selected_stations and not df_all.empty:
     <span style="color:{EAQI_COLOURS.get(best_lbl,'#888')}">({best_lbl})</span></span>
 </div>
 """, unsafe_allow_html=True)
+
+# Update previous playing state for next frame
+st.session_state.prev_playing = st.session_state.playing
