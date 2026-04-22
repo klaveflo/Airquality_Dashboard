@@ -9,6 +9,8 @@ import altair as alt
 import time
 from query_llm import ask_llm_about_peak
 import os
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 
 # Import API key
 ################################################################################
@@ -43,28 +45,29 @@ def apply_styling(df):
         val = df["Value"].fillna(0)
         max_val = 240
         val_capped = val.clip(lower=0, upper=max_val)
-        
+        # Overwrite Value column with capped values for display and tooltip
+        df["Value"] = val_capped
         is_missing = df["Value"].isna() | (df["Value"] == 0)
-        
+
         # Calculate size based on 10 percentiles (deciles)
         df["size"] = 0
         valid_mask = ~is_missing
         if valid_mask.sum() > 0:
             try:
-                # 10 percentiles: pd.qcut gives values 0-9
                 deciles = pd.qcut(df.loc[valid_mask, "Value"], q=10, labels=False, duplicates='drop')
-                # Ensure visibility with incremental size based on where it falls in the decile
                 df.loc[valid_mask, "size"] = 3000 + (deciles * 2000)
             except ValueError:
-                # Fallback if not enough data to create quantiles
-                df.loc[valid_mask, "size"] = 5000
-        
+                df.loc[valid_mask, "size"] = 3000
+
+        # Use matplotlib colormap for color
         norm = val_capped / max_val
-        df["color_r"] = 255
-        df["color_g"] = (255 * (1 - norm)).astype(int)
-        df["color_b"] = (255 * (1 - norm)).astype(int)
+        cmap = cm.get_cmap("Wistia")  # yellowish colormap
+        colors = (cmap(norm.values) * 255).astype(int)  # RGBA in 0-255
+        df["color_r"] = colors[:, 0]
+        df["color_g"] = colors[:, 1]
+        df["color_b"] = colors[:, 2]
         df["color_a"] = 180
-        df.loc[is_missing, "color_a"] = 0
+        df.loc[is_missing, ["color_r", "color_g", "color_b", "color_a"]] = [0, 0, 0, 0]
     return df
 
 # Connect to DuckDB and define query functions
@@ -144,7 +147,16 @@ def render_map(df_to_render, default_lat=50.0, default_lon=10.0):
         # seamlessly without pausing at its destination
         transitions={"getRadius": 800, "getFillColor": 800}
     )
-    return pdk.Deck(layers=[layer] if not df_to_render.empty else [], map_style=None, initial_view_state=static_view_state, tooltip={"text": "Value: {Value:.2f}"})
+    # Fix tooltip to show the actual value for each point
+    return pdk.Deck(
+        layers=[layer] if not df_to_render.empty else [],
+        map_style=None,
+        initial_view_state=static_view_state,
+        tooltip={
+            "html": "<b>Value:</b> {Value}",
+            "style": {"color": "white"}
+        }
+    )
 
 # Functions to render chart
 ################################################################################
