@@ -443,28 +443,21 @@ def _get_db():
         _db_conn = duckdb.connect("eeaopt.db", read_only=True)
     return _db_conn
 
-@lru_cache(maxsize=32)
-def hist_get_master_stations(table_name, start, end):
+@lru_cache(maxsize=4)
+def hist_get_all_stations(table_name):
     conn = _get_db()
-    query = f"""
-        SELECT DISTINCT "Latitude" as lat, "Longitude" as lon
+    df = conn.execute(f"""
+        SELECT DISTINCT "Latitude" as lat, "Longitude" as lon, "Country"
         FROM {table_name}
-        WHERE DATE("Date") BETWEEN '{start}' AND '{end}'
-            AND "Latitude" IS NOT NULL AND "Longitude" IS NOT NULL
-    """
-    df = conn.execute(query).fetch_df()
-    return df.sort_values(by=["lat","lon"]).reset_index(drop=True)
+        WHERE "Latitude" IS NOT NULL AND "Longitude" IS NOT NULL
+    """).fetch_df()
+    return df
 
-@lru_cache(maxsize=128)
-def hist_get_map_data_cached(date_str, table_name):
-    conn = _get_db()
-    query = f"""
-        SELECT "Value", "Latitude" as lat, "Longitude" as lon
-        FROM {table_name}
-        WHERE DATE("Date") = '{date_str}'
-            AND "Latitude" IS NOT NULL AND "Longitude" IS NOT NULL
-    """
-    return conn.execute(query).fetch_df()
+def hist_get_master_stations(table_name, start, end, country="ALL"):
+    df = hist_get_all_stations(table_name)
+    if country != "ALL":
+        df = df[df["Country"] == country]
+    return df[["lat","lon"]].reset_index(drop=True)
 
 def hist_get_map_data(date_str, table_name, master_df=None):
     df = hist_get_map_data_cached(date_str, table_name)
