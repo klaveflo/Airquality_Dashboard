@@ -15,7 +15,7 @@ Key implementation notes for this version:
   fetching) is unchanged from the Streamlit original.
 
 Run with:
-    shiny run --reload test_live.py
+    shiny run --reload shiny_dashboard_new.py
 
 Requires:
     pip install shiny shinywidgets requests pandas altair pyarrow
@@ -458,6 +458,18 @@ def hist_get_master_stations(table_name, start, end, country="ALL"):
     if country != "ALL":
         df = df[df["Country"] == country]
     return df[["lat","lon"]].reset_index(drop=True)
+
+@lru_cache(maxsize=64)
+def hist_get_map_data_cached(date_str, table_name):
+    conn = _get_db()
+    query = f"""
+        SELECT "Latitude" as lat, "Longitude" as lon, AVG("Value") as "Value"
+        FROM {table_name}
+        WHERE DATE("Date") = '{date_str}' AND "Value" IS NOT NULL
+          AND "Latitude" IS NOT NULL AND "Longitude" IS NOT NULL
+        GROUP BY "Latitude", "Longitude"
+    """
+    return conn.execute(query).fetch_df()    
 
 def hist_get_map_data(date_str, table_name, master_df=None):
     df = hist_get_map_data_cached(date_str, table_name)
