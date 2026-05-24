@@ -7,6 +7,7 @@ Exposes:
 """
 
 import datetime as _dt
+import time as _time
 
 import pandas as pd
 
@@ -155,6 +156,69 @@ _HIST_MAP_INIT_JS = r"""
 """
 
 
+# ── Client-side Vega signal updater for the daily-average dot ────────────────
+# During animation the chart is not re-rendered (no flicker), but we still want
+# the red dot to follow the current date.  This script finds the Vega view that
+# shinywidgets/anywidget creates inside #hist_chart and updates the 'histCurDate'
+# signal directly, which moves the dot without touching the rest of the chart.
+
+_HIST_DOT_JS = r"""
+(function () {
+  var _view = null;
+
+  function findView() {
+    var container = document.getElementById('hist_chart');
+    if (!container) return null;
+    function walk(el, depth) {
+      if (depth > 8) return null;
+      var v = el._view || el._vegaView || el.__view || el.__vegaView;
+      if (v && typeof v.signal === 'function') return v;
+      for (var i = 0; i < el.children.length; i++) {
+        var f = walk(el.children[i], depth + 1);
+        if (f) return f;
+      }
+      return null;
+    }
+    return walk(container, 0);
+  }
+
+  // Re-scan whenever the chart widget re-renders (new Vega view instance)
+  function startObserver() {
+    var container = document.getElementById('hist_chart');
+    if (!container) { setTimeout(startObserver, 100); return; }
+    new MutationObserver(function () {
+      setTimeout(function () { var v = findView(); if (v) _view = v; }, 300);
+    }).observe(container, { subtree: true, childList: true });
+    setTimeout(function () { var v = findView(); if (v) _view = v; }, 600);
+  }
+
+  function applyDate(dateStr, tries) {
+    var v = _view || findView();
+    if (v && typeof v.signal === 'function') {
+      _view = v;
+      try { v.signal('histCurDate', dateStr).run(); return; }
+      catch (e) { _view = null; }
+    }
+    if (tries < 12) setTimeout(function () { applyDate(dateStr, tries + 1); }, 100);
+  }
+
+  function setup() {
+    if (typeof Shiny === 'undefined' || !Shiny.addCustomMessageHandler) {
+      setTimeout(setup, 60); return;
+    }
+    Shiny.addCustomMessageHandler('update_hist_dot_date', function (msg) {
+      applyDate(msg.date_str, 0);
+    });
+    startObserver();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setup);
+  } else { setup(); }
+})();
+"""
+
+
 # ── UI ─────────────────────────────────────────────────────────────────────────
 
 def hist_ui():
@@ -167,6 +231,7 @@ def hist_ui():
                             style="width:100%;height:450px;border-radius:4px;"
                                   "overflow:hidden;position:relative;background:#0e1117;"),
                 ui.tags.script(ui.HTML(_HIST_MAP_INIT_JS)),
+                ui.tags.script(ui.HTML(_HIST_DOT_JS)),
                 ui.output_ui("hist_eaqi_legend"),
                 output_widget("hist_chart"),
                 output_widget("hist_yoy_chart"),
@@ -194,7 +259,8 @@ def hist_ui():
                                 max=_dt.date(2025, 1, 1),
                                 value=_dt.date(2013, 1, 1),
                                 step=_dt.timedelta(days=1),
-                                time_format="%Y-%m-%d"),
+                                time_format="%Y-%m-%d",
+                                width="100%"),
                 ui.layout_columns(
                     ui.input_action_button("hist_play", "▶️ Play",
                                            class_="btn-primary"),
@@ -266,27 +332,41 @@ def hist_server(input, output, session):
     @reactive.effect
     @reactive.event(input.hist_stop)
     def _hist_stop():
+        # Read last animated date before flipping the flag so hist_current_date()
+        # stays on hist_anim_date (no jump) until the slider round-trip completes.
+        with reactive.isolate():
+            last = hist_anim_date()
         hist_playing.set(False)
+        if last is not None:
+            ui.update_slider("hist_date", value=last)
 
     @reactive.effect
     def _hist_advance():
-        # Reading hist_playing() (callable form) registers a reactive dependency.
-        # When hist_playing becomes False the effect re-fires and returns early,
-        # effectively stopping the animation.
         if not hist_playing():
             return
         speed = _SPEED_MAP.get(input.hist_speed(), 0.5)
         reactive.invalidate_later(speed)
-        # Use isolate() for the mutable animation date so advancing it doesn't
-        # cause an infinite re-render loop.
         with reactive.isolate():
             cur = hist_anim_date() if hist_anim_date() is not None else input.hist_date()
         nxt = cur + _dt.timedelta(days=1)
         if nxt > input.hist_end():
             hist_playing.set(False)
+            # Single slider sync at end-of-range — no in-flight queue
+            ui.update_slider("hist_date", value=cur)
         else:
             hist_anim_date.set(nxt)
-            ui.update_slider("hist_date", value=nxt)
+            # Do NOT call ui.update_slider here: queuing one message per frame
+            # creates in-flight round-trips that cause a jump-back on Stop.
+
+    # Sync hist_anim_date from the slider when the user manually scrubs (not playing).
+    # This effect only fires on user interaction because the animation loop never
+    # calls ui.update_slider during playback.
+    @reactive.effect
+    @reactive.event(input.hist_date)
+    def _on_slider_change():
+        with reactive.isolate():
+            if not hist_playing():
+                hist_anim_date.set(input.hist_date())
 
     # Jump to peak button
     @reactive.effect
@@ -296,17 +376,25 @@ def hist_server(input, output, session):
         if df.empty:
             return
         peak_date = df.loc[df["AvgValue"].idxmax(), "Date"].date()
-        hist_anim_date.set(None)
+        hist_anim_date.set(peak_date)
         ui.update_slider("hist_date", value=peak_date)
 
-    # ── Bug fix 3: use hist_playing() / hist_anim_date() (callable form) ──────
-    # Using .get() in a @reactive.calc means the calc doesn't re-run when those
-    # values change, so the date label stays stale during animation.
+    # Keep slider min/max in sync with the date-range pickers
+    @reactive.effect
+    def update_slider_bounds():
+        ui.update_slider("hist_date",
+                         min=input.hist_start(),
+                         max=input.hist_end())
 
     @reactive.calc
     def hist_current_date():
-        if hist_playing() and hist_anim_date() is not None:
-            return hist_anim_date()
+        # hist_anim_date is authoritative whenever it's set: during animation AND
+        # in the brief window after Stop while the slider round-trip completes.
+        # Only falls back to the slider input when hist_anim_date has never been set
+        # (app start, before the first Play or manual scrub).
+        anim = hist_anim_date()
+        if anim is not None:
+            return anim
         return input.hist_date()
 
     @output
@@ -320,16 +408,47 @@ def hist_server(input, output, session):
     def hist_eaqi_legend():
         return ui.HTML(build_hist_eaqi_legend(input.hist_pollutant()))
 
+    # Timestamp of the last map push — used to throttle at high animation speeds.
+    _map_push_ts = [0.0]
+
     @reactive.effect
     async def _push_hist_map():
-        df = hist_get_map_data(str(hist_current_date()), hist_table(), hist_master())
+        cur = hist_current_date()
+        # At speeds 4/5 the frame interval (0.25 s / 0.1 s) is shorter than the
+        # map query + payload time (~0.3–0.5 s), so cap map updates at ~2–3 fps
+        # there.  The date label still advances every frame.
+        with reactive.isolate():
+            spd = input.hist_speed()
+        if hist_playing() and spd >= 4:
+            now = _time.monotonic()
+            if now - _map_push_ts[0] < 0.35:
+                return
+            _map_push_ts[0] = now
+        df = hist_get_map_data(str(cur), hist_table(), hist_master())
         payload = build_hist_map_payload(df)
         await session.send_custom_message("update_hist_map_data", payload)
+
+    @reactive.effect
+    async def _send_dot_update():
+        # Fires every time hist_current_date() changes — during animation AND on
+        # manual scrubs.  Updates the Vega 'histCurDate' signal client-side so
+        # the red dot moves without re-rendering the full chart.
+        date_str = str(hist_current_date())
+        await session.send_custom_message("update_hist_dot_date", {"date_str": date_str})
 
     @output
     @render_altair
     def hist_chart():
-        return build_hist_avg_chart(hist_averages(), hist_current_date())
+        df = hist_averages()
+        # During animation isolate the current date so the chart doesn't
+        # re-render every frame (the map and date label update instead).
+        # When stopped or scrubbing, the full chart with the dot re-renders.
+        if hist_playing():
+            with reactive.isolate():
+                cur = hist_current_date()
+        else:
+            cur = hist_current_date()
+        return build_hist_avg_chart(df, cur)
 
     @output
     @render_altair

@@ -137,7 +137,7 @@ def render_legend(pollutant):
         f'<b>{pollutant} Air Quality Index (µg/m³)</b><br>'
         + " &thinsp;".join(swatches)
         + '<br><span style="color:#aaa;font-size:11px;margin-top:6px;display:block">'
-        + '<b>Station types:</b> ● Filled — urban &nbsp;|&nbsp; ◉ Filled + white border — suburban &nbsp;|&nbsp; ○ Hollow EAQI-colour ring — rural</span>'
+        + '<b>Station types:</b> ● Filled: urban &nbsp;|&nbsp; ◉ Filled + white border: suburban &nbsp;|&nbsp; ○ Hollow EAQI-colour ring: rural</span>'
         + "</div>"
     )
 
@@ -600,17 +600,28 @@ def build_hist_map_payload(df):
 def build_hist_avg_chart(df_avg, current_date):
     if df_avg.empty:
         return alt.Chart(pd.DataFrame({"Date":[],"AvgValue":[]})).mark_line().properties(height=190)
-    base = (alt.Chart(df_avg).mark_line(color="gray", strokeWidth=2)
+    df = df_avg.copy()
+    df["DateStr"] = df["Date"].dt.strftime("%Y-%m-%d")
+    date_str = str(current_date)
+
+    # Scalar Vega-Lite param that holds the selected date string.
+    # During animation this is updated client-side via the Vega signal API
+    # (see update_hist_dot_date message handler) so only the dot moves, not
+    # the whole chart.
+    date_param = alt.param(name="histCurDate", value=date_str)
+
+    base = (alt.Chart(df).mark_line(color="gray", strokeWidth=2)
             .encode(x=alt.X("Date:T", title="Date"),
                     y=alt.Y("AvgValue:Q", title="Daily Average Value"))
-            .properties(height=190))
-    current_dt = pd.to_datetime(str(current_date))
-    dot_data   = df_avg[df_avg["Date"] == current_dt]
-    if dot_data.empty:
-        return base
-    dot = (alt.Chart(dot_data).mark_circle(color="red", size=100, opacity=1)
-           .encode(x="Date:T", y="AvgValue:Q"))
-    return (alt.layer(base, dot).resolve_scale(y="shared")
+            .properties(height=190)
+            .interactive())
+    dot = (alt.Chart(df)
+           .mark_circle(color="red", size=100, opacity=1)
+           .encode(x="Date:T", y="AvgValue:Q")
+           .transform_filter("datum.DateStr === histCurDate"))
+    return (alt.layer(base, dot)
+            .add_params(date_param)
+            .resolve_scale(y="shared")
             .properties(width="container"))
 
 
@@ -660,6 +671,6 @@ def build_hist_eaqi_legend(pollutant):
         f'<b>{pollutant} EAQI (µg/m³):</b> '
         + " ".join(swatches)
         + '<br><span style="color:#aaa;font-size:11px;margin-top:6px;display:block">'
-        + '<b>Station types:</b> ● Filled — urban &nbsp;|&nbsp; ◉ Filled + white border — suburban &nbsp;|&nbsp; ○ Hollow EAQI-colour ring — rural</span>'
+        + '<b>Station types:</b> ● Filled: urban &nbsp;|&nbsp; ◉ Filled + white border: suburban &nbsp;|&nbsp; ○ Hollow EAQI-colour ring: rural</span>'
         + "</div>"
     )
