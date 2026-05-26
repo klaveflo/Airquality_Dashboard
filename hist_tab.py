@@ -156,60 +156,72 @@ _HIST_MAP_INIT_JS = r"""
 """
 
 
-# ── Client-side Vega signal updater for the daily-average dot ────────────────
-# During animation the chart is not re-rendered (no flicker), but we still want
-# the red dot to follow the current date.  This script finds the Vega view that
-# shinywidgets/anywidget creates inside #hist_chart and updates the 'histCurDate'
-# signal directly, which moves the dot without touching the rest of the chart.
+# ── Client-side Vega embed for the daily-average chart ───────────────────────
+# We call vegaEmbed ourselves so we hold result.view directly — no DOM walking,
+# no patching.  Two Shiny message channels:
+#   update_hist_avg_spec  → full Vega-Lite spec dict; re-embeds the chart
+#   update_hist_dot_date  → {date_str} only; moves the dot via signal, no re-embed
 
-_HIST_DOT_JS = r"""
+_HIST_CHART_JS = r"""
 (function () {
   var _view = null;
 
-  function findView() {
-    var container = document.getElementById('hist_chart');
-    if (!container) return null;
-    function walk(el, depth) {
-      if (depth > 8) return null;
-      var v = el._view || el._vegaView || el.__view || el.__vegaView;
-      if (v && typeof v.signal === 'function') return v;
-      for (var i = 0; i < el.children.length; i++) {
-        var f = walk(el.children[i], depth + 1);
-        if (f) return f;
-      }
-      return null;
-    }
-    return walk(container, 0);
+  // ── Chart embed ──────────────────────────────────────────────────────────────
+  function doEmbed(spec) {
+    var container = document.getElementById('hist_avg_chart_container');
+    if (!container) { setTimeout(function () { doEmbed(spec); }, 100); return; }
+    if (typeof vegaEmbed === 'undefined') { setTimeout(function () { doEmbed(spec); }, 100); return; }
+    vegaEmbed(container, spec, { actions: true, renderer: 'canvas' })
+      .then(function (result) {
+        _view = result.view;
+        // Resize to fill the container immediately after embed.
+        _view.resize().run();
+        // Click-to-jump via Vega-Lite's own selection system.  Vega internally
+        // distinguishes clicks from pan/drag so no custom mouse handling needed.
+        // The signal listener is re-registered on every re-embed so it always
+        // binds to the current view instance.
+        // The selection uses fields=["DateStr"] so value carries the
+        // pre-formatted "YYYY-MM-DD" string — no timestamp conversion needed.
+        _view.addSignalListener('date_click', function (name, value) {
+          console.log('[hist_chart] date_click signal:', name, JSON.stringify(value));
+          if (!value || typeof value !== 'object') return;
+          var dateStr = null;
+          // Vega-Lite 5: {vlPoint: {or: [{DateStr: "YYYY-MM-DD"}]}}
+          if (value.vlPoint && value.vlPoint.or && value.vlPoint.or.length > 0) {
+            dateStr = value.vlPoint.or[0].DateStr;
+          } else if (typeof value.DateStr === 'string') {
+            // Older compilation: {DateStr: "YYYY-MM-DD"}
+            dateStr = value.DateStr;
+          }
+          if (!dateStr) return;
+          if (typeof Shiny !== 'undefined') {
+            Shiny.setInputValue('hist_chart_click_date', dateStr, {priority: 'event'});
+          }
+        });
+      })
+      .catch(function (err) { console.error('hist_chart embed error:', err); });
   }
 
-  // Re-scan whenever the chart widget re-renders (new Vega view instance)
-  function startObserver() {
-    var container = document.getElementById('hist_chart');
-    if (!container) { setTimeout(startObserver, 100); return; }
-    new MutationObserver(function () {
-      setTimeout(function () { var v = findView(); if (v) _view = v; }, 300);
-    }).observe(container, { subtree: true, childList: true });
-    setTimeout(function () { var v = findView(); if (v) _view = v; }, 600);
-  }
-
+  // ── Dot position update (signal only, no re-embed) ───────────────────────────
   function applyDate(dateStr, tries) {
-    var v = _view || findView();
-    if (v && typeof v.signal === 'function') {
-      _view = v;
-      try { v.signal('histCurDate', dateStr).run(); return; }
+    if (_view && typeof _view.signal === 'function') {
+      try { _view.signal('histCurDate', dateStr).run(); return; }
       catch (e) { _view = null; }
     }
-    if (tries < 12) setTimeout(function () { applyDate(dateStr, tries + 1); }, 100);
+    if (tries < 20) setTimeout(function () { applyDate(dateStr, tries + 1); }, 100);
   }
 
+  // ── Bootstrap ────────────────────────────────────────────────────────────────
   function setup() {
     if (typeof Shiny === 'undefined' || !Shiny.addCustomMessageHandler) {
       setTimeout(setup, 60); return;
     }
+    Shiny.addCustomMessageHandler('update_hist_avg_spec', function (msg) {
+      doEmbed(msg);
+    });
     Shiny.addCustomMessageHandler('update_hist_dot_date', function (msg) {
       applyDate(msg.date_str, 0);
     });
-    startObserver();
   }
 
   if (document.readyState === 'loading') {
@@ -223,6 +235,11 @@ _HIST_DOT_JS = r"""
 
 def hist_ui():
     return ui.nav_panel("Historic Data",
+        # Vega stack — must load before our JS runs vegaEmbed
+        ui.tags.script(src="https://cdn.jsdelivr.net/npm/vega@5"),
+        ui.tags.script(src="https://cdn.jsdelivr.net/npm/vega-lite@5"),
+        ui.tags.script(src="https://cdn.jsdelivr.net/npm/vega-embed@6"),
+        ui.tags.script(ui.HTML(_HIST_CHART_JS)),
         ui.layout_columns(
             # Left: map + legend + charts
             ui.div(
@@ -231,9 +248,8 @@ def hist_ui():
                             style="width:100%;height:450px;border-radius:4px;"
                                   "overflow:hidden;position:relative;background:#0e1117;"),
                 ui.tags.script(ui.HTML(_HIST_MAP_INIT_JS)),
-                ui.tags.script(ui.HTML(_HIST_DOT_JS)),
                 ui.output_ui("hist_eaqi_legend"),
-                output_widget("hist_chart"),
+                ui.div(id="hist_avg_chart_container", style="width:100%;cursor:crosshair;"),
                 output_widget("hist_yoy_chart"),
             ),
             # Right: controls + stats
@@ -261,6 +277,10 @@ def hist_ui():
                                 step=_dt.timedelta(days=1),
                                 time_format="%Y-%m-%d",
                                 width="100%"),
+                ui.input_date("hist_date_picker", "Jump to date:",
+                              value=_dt.date(2013, 1, 1),
+                              min=_dt.date(2013, 1, 1),
+                              max=_dt.date(2025, 1, 1)),
                 ui.layout_columns(
                     ui.input_action_button("hist_play", "▶️ Play",
                                            class_="btn-primary"),
@@ -270,16 +290,16 @@ def hist_ui():
                 ui.input_slider("hist_speed", "Animation Speed",
                                 min=1, max=5, value=3, step=1, ticks=True),
                 ui.input_action_button("hist_jump_peak", "🎯 Jump to Peak",
-                                       class_="btn-primary",
-                                       style="width:100%;margin-bottom:8px"),
+                                       style="width:100%;margin-bottom:8px;"
+                                             "background-color:#EE7733;border-color:#EE7733;"
+                                             "color:#fff;"),
                 ui.hr(),
                 ui.output_ui("hist_stats_box"),
                 ui.hr(),
-                ui.h5("Ask AI about peaks"),
                 ui.input_text("hist_llm_query", "Curious about a peak? Ask here:",
                               placeholder="What could cause this peak?"),
                 ui.input_action_button("hist_ask", "Ask AI", class_="btn-primary"),
-                ui.output_text_verbatim("hist_llm_response"),
+                ui.output_ui("hist_llm_response"),
             ),
             col_widths=(8, 4),
         ),
@@ -289,9 +309,10 @@ def hist_ui():
 # ── Server ─────────────────────────────────────────────────────────────────────
 
 def hist_server(input, output, session):
-    hist_playing   = reactive.Value(False)
-    hist_anim_date = reactive.Value(None)
-    hist_llm_resp  = reactive.Value("")
+    hist_playing      = reactive.Value(False)
+    hist_anim_date    = reactive.Value(None)
+    hist_llm_resp     = reactive.Value("")
+    click_in_flight   = reactive.Value(False)
 
     # Speed map: slider value 1-5 → seconds per frame
     _SPEED_MAP = {1: 1.2, 2: 0.8, 3: 0.5, 4: 0.25, 5: 0.1}
@@ -379,12 +400,46 @@ def hist_server(input, output, session):
         hist_anim_date.set(peak_date)
         ui.update_slider("hist_date", value=peak_date)
 
-    # Keep slider min/max in sync with the date-range pickers
+    # Chart click → jump to clicked date (same behaviour as slider scrub)
+    @reactive.effect
+    @reactive.event(input.hist_chart_click_date)
+    def _on_chart_click():
+        raw = input.hist_chart_click_date()
+        if not raw:
+            return
+        try:
+            clicked = _dt.date.fromisoformat(str(raw))
+        except (ValueError, TypeError):
+            return
+        with reactive.isolate():
+            start = input.hist_start()
+            end   = input.hist_end()
+        clicked = max(start, min(end, clicked))
+        hist_playing.set(False)
+        click_in_flight.set(True)
+        hist_anim_date.set(clicked)
+        ui.update_slider("hist_date", value=clicked)
+
+    # Manual date picker → jump to picked date
+    @reactive.effect
+    @reactive.event(input.hist_date_picker)
+    def _on_date_picker():
+        picked = input.hist_date_picker()
+        if picked is None:
+            return
+        hist_playing.set(False)
+        hist_anim_date.set(picked)
+        ui.update_slider("hist_date", value=picked)
+
+    # Keep slider and date-picker min/max in sync with the date-range pickers
     @reactive.effect
     def update_slider_bounds():
         ui.update_slider("hist_date",
                          min=input.hist_start(),
                          max=input.hist_end())
+        ui.update_date("hist_date_picker",
+                       min=input.hist_start(),
+                       max=input.hist_end())
 
     @reactive.calc
     def hist_current_date():
@@ -401,7 +456,9 @@ def hist_server(input, output, session):
     @render.ui
     def hist_map_label():
         state = "Animating" if hist_playing() else "Viewing"
-        return ui.HTML(f"<b>{state}:</b> {hist_current_date()}")
+        d = hist_current_date()
+        label = d.strftime("%d %b %Y") if hasattr(d, "strftime") else str(d)
+        return ui.HTML(f"<b>{state}:</b> {label}")
 
     @output
     @render.ui
@@ -429,26 +486,30 @@ def hist_server(input, output, session):
         await session.send_custom_message("update_hist_map_data", payload)
 
     @reactive.effect
-    async def _send_dot_update():
-        # Fires every time hist_current_date() changes — during animation AND on
-        # manual scrubs.  Updates the Vega 'histCurDate' signal client-side so
-        # the red dot moves without re-rendering the full chart.
-        date_str = str(hist_current_date())
-        await session.send_custom_message("update_hist_dot_date", {"date_str": date_str})
-
-    @output
-    @render_altair
-    def hist_chart():
+    async def _push_hist_chart_spec():
+        # Fires only when the underlying data changes (pollutant or date range).
+        # Does NOT read hist_current_date() so date selections never cause a
+        # re-embed — zoom/pan state is preserved across all date changes.
+        # The dot is baked at the first data row as a placeholder; _send_dot_update
+        # fires immediately after and moves it to the correct position via signal.
         df = hist_averages()
-        # During animation isolate the current date so the chart doesn't
-        # re-render every frame (the map and date label update instead).
-        # When stopped or scrubbing, the full chart with the dot re-renders.
-        if hist_playing():
-            with reactive.isolate():
-                cur = hist_current_date()
-        else:
-            cur = hist_current_date()
-        return build_hist_avg_chart(df, cur)
+        with reactive.isolate():
+            default_date = df.iloc[0]["Date"].date() if not df.empty else input.hist_start()
+        spec = build_hist_avg_chart(df, default_date)
+        await session.send_custom_message("update_hist_avg_spec", spec)
+
+    @reactive.effect
+    async def _send_dot_update():
+        # Fires on every hist_current_date() change — animation frames, slider
+        # scrubs, chart clicks, date picker, jump-to-peak — all go through the
+        # lightweight Vega signal path.  No re-embed, zoom/pan preserved.
+        # Skip one update after a chart click: Vega's own selection already
+        # placed the dot correctly, so the server round-trip would double-jump.
+        date_str = str(hist_current_date())
+        if click_in_flight():
+            click_in_flight.set(False)
+            return
+        await session.send_custom_message("update_hist_dot_date", {"date_str": date_str})
 
     @output
     @render_altair
@@ -492,6 +553,14 @@ def hist_server(input, output, session):
         hist_llm_resp.set(resp)
 
     @output
-    @render.text
+    @render.ui
     def hist_llm_response():
-        return hist_llm_resp()
+        txt = hist_llm_resp()
+        if not txt:
+            return ui.tags.div()
+        return ui.HTML(
+            f'<div style="background:rgba(68,119,170,0.12);color:inherit;'
+            f'padding:12px;border-radius:6px;border:1px solid #4477AA;'
+            f'font-size:13px;line-height:1.6;white-space:pre-wrap;margin-top:8px;">'
+            f'{txt}</div>'
+        )

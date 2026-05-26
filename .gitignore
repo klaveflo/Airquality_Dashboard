@@ -5,6 +5,9 @@
 venv/
 env/
 
+# Ignore environemt file with secrets
+.env
+
 # Ignore pychache
 __pycache__/
 

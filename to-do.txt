@@ -1,0 +1,23 @@
+beide tabs:
+- Legende, dunke farben evtl. zu dunkeö (text darauf schlecht lesbar), legende eher zu klein
+- No data (grey) in legende hinzufügen
+- Weisse ringe auch in light mode korrekt sichtbar?
+- Buttons ohne emoji (nur text)
+- Text Erklärungen
+
+
+Live tab:
+- Beide charts unert map gleich gross nebeneinander, und Text sumamry nebeneinander ansatt übereinander
+- Automatisch zum land zoomen das angewählt wurde?
+- Legende "Hourely readings...", erklärung background farbe der pollution klasse und diese farben anpassen ("good" zu hell)
+
+Historic Tab:
+- Länder selection wie bei live tab (geht das mit duckdb database?), Bei AI abfrage berücksichtigen
+- animation speed: 5 zu langsam (gleich wie 3??), darf locker doppelt so schnell sein
+- "Jump to peak" gleiches problem wie bei datum selction durch klick in chart (nach klich datum springt eins nach links, nach zweitem klick stimmts)
+- Datum vom roten Punkt in line chart anzeigen bei drüber hovern mit cursor
+- Jump to date selection unnötig?
+- beide plots unten: background farben für pollution klasse (wie chart live tab)
+
+
+ 

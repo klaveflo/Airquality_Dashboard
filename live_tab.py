@@ -204,7 +204,7 @@ def live_ui():
                 ui.input_action_button("load", "Load / Refresh", class_="btn-primary"),
                 ui.output_ui("hour_slider_ui"),
                 ui.layout_columns(
-                    ui.input_action_button("play", "▶️ Play"),
+                    ui.input_action_button("play", "▶️ Play", class_="btn-primary"),
                     ui.input_action_button("stop", "⏹️ Stop"),
                     col_widths=(4, 8),
                 ),
@@ -486,12 +486,18 @@ def live_server(input, output, session):
             return ui.tags.div()
         return ui.tags.div(
             ui.hr(),
-            ui.h4("Station Comparison"),
+            ui.tags.style("""
+                #breakdown_chart { margin-bottom: 0 !important; }
+                #breakdown_chart .widget-subarea { margin-bottom: 0 !important; }
+                #summary_cards { margin-top: 4px !important; }
+                #summary_cards > div { margin-top: 0 !important; }
+            """),
             ui.layout_columns(
-                ui.div(output_widget("line_chart")),
+                output_widget("line_chart"),
                 ui.div(
                     output_widget("breakdown_chart"),
                     ui.output_ui("summary_cards"),
+                    style="display:flex;flex-direction:column;gap:4px;",
                 ),
                 col_widths=(7, 5),
             ),
@@ -593,7 +599,7 @@ def live_server(input, output, session):
                     alt.Tooltip("hours:Q", title="Hours"),
                 ],
             )
-            .properties(height=90, title="Air Quality Breakdown (share of hours)",
+            .properties(height=120, title="Air Quality Breakdown (share of hours)",
                         width="container")
         )
 

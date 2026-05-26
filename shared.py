@@ -599,35 +599,51 @@ def build_hist_map_payload(df):
 
 def build_hist_avg_chart(df_avg, current_date):
     if df_avg.empty:
-        return alt.Chart(pd.DataFrame({"Date":[],"AvgValue":[]})).mark_line().properties(height=190)
+        return (alt.Chart(pd.DataFrame({"Date": [], "AvgValue": []}))
+                .mark_line().properties(height=300, width="container").to_dict())
     df = df_avg.copy()
     df["DateStr"] = df["Date"].dt.strftime("%Y-%m-%d")
     date_str = str(current_date)
 
-    # Scalar Vega-Lite param that holds the selected date string.
-    # During animation this is updated client-side via the Vega signal API
-    # (see update_hist_dot_date message handler) so only the dot moves, not
-    # the whole chart.
     date_param = alt.param(name="histCurDate", value=date_str)
+
+    # Click-to-jump selection.  Kept on its own invisible layer so it does not
+    # interfere with .interactive() pan/zoom on the base line layer.
+    # nearest=True uses Vega's Voronoi snapping so any click in the chart area
+    # finds the closest data point.  opacity=0.001 keeps the marks renderable
+    # (opacity=0 can cause the canvas renderer to skip marks entirely, missing clicks).
+    # fields=["DateStr"] captures the pre-formatted date string directly, avoiding
+    # any JS timestamp-to-date conversion and the timezone off-by-one it causes.
+    click_sel = alt.selection_point(
+        name="date_click", on="click", nearest=True, fields=["DateStr"])
+    click_target = (alt.Chart(df)
+                    .mark_point(opacity=0.001, size=300)
+                    .encode(x="Date:T", y="AvgValue:Q")
+                    .add_params(click_sel))
 
     base = (alt.Chart(df).mark_line(color="gray", strokeWidth=2)
             .encode(x=alt.X("Date:T", title="Date"),
-                    y=alt.Y("AvgValue:Q", title="Daily Average Value"))
-            .properties(height=190)
+                    y=alt.Y("AvgValue:Q", title="Daily Average Value",
+                            axis=alt.Axis(titlePadding=15)))
+            .properties(height=300, title="Daily Average Values Over Time")
             .interactive())
     dot = (alt.Chart(df)
            .mark_circle(color="red", size=100, opacity=1)
            .encode(x="Date:T", y="AvgValue:Q")
            .transform_filter("datum.DateStr === histCurDate"))
-    return (alt.layer(base, dot)
+    spec = (alt.layer(base, dot, click_target)
             .add_params(date_param)
             .resolve_scale(y="shared")
-            .properties(width="container"))
+            .properties(width="container")
+            .to_dict())
+    # Ensure the chart fills its container div at any window size.
+    spec["autosize"] = {"type": "fit-x", "contains": "padding"}
+    return spec
 
 
 def build_yoy_chart(df_yoy, pollutant):
     if df_yoy.empty:
-        return alt.Chart(pd.DataFrame()).mark_line().properties(height=200)
+        return alt.Chart(pd.DataFrame()).mark_line().properties(height=300)
     years = sorted(df_yoy["Year"].unique())
     if len(years) > 5:
         step  = max(1, len(years) // 4)
@@ -641,7 +657,8 @@ def build_yoy_chart(df_yoy, pollutant):
         .encode(
             x=alt.X("MonthDate:T", title="Month",
                     axis=alt.Axis(format="%b", tickCount="month", labelAngle=0)),
-            y=alt.Y("AvgValue:Q", title=f"{pollutant} Monthly Avg (µg/m³)"),
+            y=alt.Y("AvgValue:Q", title=f"{pollutant} Monthly Avg (µg/m³)",
+                    axis=alt.Axis(titlePadding=15)),
             color=alt.Color("YearStr:N", title="Year"),
             tooltip=[
                 alt.Tooltip("YearStr:N", title="Year"),
@@ -649,7 +666,7 @@ def build_yoy_chart(df_yoy, pollutant):
                 alt.Tooltip("AvgValue:Q", format=".1f", title="µg/m³"),
             ],
         )
-        .properties(height=200, title="Year-over-Year Comparison (monthly averages)")
+        .properties(height=300, title="Year-over-Year Comparison (monthly averages)")
         .interactive()
         .properties(width="container")
     )

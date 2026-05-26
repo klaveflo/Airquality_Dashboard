@@ -17,6 +17,9 @@ JS message channels:
 There are no overlapping IDs between tabs.
 """
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import sys
 import asyncio
 
@@ -32,8 +35,9 @@ from hist_tab import hist_ui, hist_server
 # ── Shared CSS ─────────────────────────────────────────────────────────────────
 
 _APP_CSS = """
+/* ── Dark mode (default) ───────────────────────────────────────────────── */
 body { background-color: #0e1117; color: #fafafa; }
-.card { background-color: #1a1a1a; border: 1px solid #333; }
+.card { background-color: #1a1a1a; border: 1px solid #333; margin-bottom: 8px !important; }
 .shiny-input-container label { color: #fafafa; }
 h1, h2, h3, h4, h5, h6 { color: #fafafa; }
 .well { background-color: #1a1a1a; border: 1px solid #333; }
@@ -45,14 +49,22 @@ h1, h2, h3, h4, h5, h6 { color: #fafafa; }
 .selectize-dropdown, .selectize-dropdown-content {
     background-color: #262730 !important; color: #fafafa !important;
 }
-.selectize-dropdown .active { background-color: #ff4b4b !important; color: #fff !important; }
-.btn-primary { background-color: #ff4b4b; border-color: #ff4b4b; }
-.btn-primary:hover { background-color: #d43d3d; border-color: #d43d3d; }
-.irs--shiny .irs-bar { background: #ff4b4b; border-top-color: #ff4b4b; border-bottom-color: #ff4b4b; }
-.irs--shiny .irs-from, .irs--shiny .irs-to, .irs--shiny .irs-single { background-color: #ff4b4b; }
+.selectize-dropdown .active { background-color: #4477AA !important; color: #fff !important; }
+/* Selected tags/chips inside multi-select inputs */
+.selectize-input .item {
+    background-color: #4477AA !important;
+    color: #fff !important;
+    border-radius: 3px !important;
+    padding: 1px 6px !important;
+}
+.btn-primary { background-color: #4477AA; border-color: #4477AA; color: #fff; }
+.btn-primary:hover { background-color: #2d5a8e; border-color: #2d5a8e; color: #fff; }
+.irs--shiny .irs-bar { background: #4477AA; border-top-color: #4477AA; border-bottom-color: #4477AA; }
+.irs--shiny .irs-from, .irs--shiny .irs-to, .irs--shiny .irs-single { background-color: #4477AA; }
 .irs--shiny .irs-line { background: #333; border-color: #333; }
 .irs--shiny .irs-grid-text { color: #aaa; }
 .shiny-notification { background-color: #1a1a1a; color: #fafafa; border-color: #333; }
+.row { margin-bottom: 0 !important; }
 #deck-map, #deck-hist-map {
     width: 100%;
     height: 450px;
@@ -62,6 +74,27 @@ h1, h2, h3, h4, h5, h6 { color: #fafafa; }
     background: #0e1117;
 }
 #deck-map canvas, #deck-hist-map canvas { outline: none; }
+
+/* ── Light mode overrides ──────────────────────────────────────────────── */
+@media (prefers-color-scheme: light) {
+    body { background-color: #f5f7fa; color: #1a1a1a; }
+    .card { background-color: #ffffff; border: 1px solid #ddd; }
+    .shiny-input-container label { color: #1a1a1a; }
+    h1, h2, h3, h4, h5, h6 { color: #1a1a1a; }
+    .well { background-color: #ffffff; border: 1px solid #ddd; }
+    .form-control, .selectize-input {
+        background-color: #ffffff !important;
+        color: #1a1a1a !important;
+        border-color: #ccc !important;
+    }
+    .selectize-dropdown, .selectize-dropdown-content {
+        background-color: #ffffff !important; color: #1a1a1a !important;
+    }
+    .irs--shiny .irs-line { background: #ddd; border-color: #ddd; }
+    .irs--shiny .irs-grid-text { color: #555; }
+    .shiny-notification { background-color: #ffffff; color: #1a1a1a; border-color: #ddd; }
+    #deck-map, #deck-hist-map { background: #e8eaf0; }
+}
 """
 
 
