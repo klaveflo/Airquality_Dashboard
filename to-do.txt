@@ -1,13 +1,14 @@
 beide tabs:
-- Legende, dunke farben evtl. zu dunkeö (text darauf schlecht lesbar), legende eher zu klein
+- Legende, dunke farben evtl. zu dunkel (text darauf schlecht lesbar), legende eher zu klein
 - No data (grey) in legende hinzufügen
 - Weisse ringe auch in light mode korrekt sichtbar?
 - Buttons ohne emoji (nur text)
 - Text Erklärungen
+- Farben im light und dark mode überprüfen (verbessern)
 
 
 Live tab:
-- Beide charts unert map gleich gross nebeneinander, und Text sumamry nebeneinander ansatt übereinander
+- Beide charts unter map gleich gross nebeneinander, und Text sumamry nebeneinander ansatt übereinander
 - Automatisch zum land zoomen das angewählt wurde?
 - Legende "Hourely readings...", erklärung background farbe der pollution klasse und diese farben anpassen ("good" zu hell)
 
