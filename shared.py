@@ -71,6 +71,53 @@ COUNTRIES = {
 }
 POLLUTANTS = ["PM10", "PM2.5", "NO2", "O3"]
 
+# Approximate map center + zoom for each country code; used by both tabs.
+# Falls back to "ALL" (all-Europe) if a code is missing.
+COUNTRY_VIEWS = {
+    "ALL": {"center": [10.0, 50.0], "zoom": 3.5},
+    "AD": {"center": [1.6,   42.5], "zoom": 8.5},
+    "AL": {"center": [20.2,  41.2], "zoom": 6.0},
+    "AT": {"center": [14.6,  47.7], "zoom": 5.5},
+    "BA": {"center": [17.8,  44.2], "zoom": 6.0},
+    "BE": {"center": [4.5,   50.5], "zoom": 6.5},
+    "BG": {"center": [25.5,  42.7], "zoom": 5.5},
+    "CH": {"center": [8.2,   46.8], "zoom": 6.5},
+    "CY": {"center": [33.2,  35.1], "zoom": 7.0},
+    "CZ": {"center": [15.5,  49.8], "zoom": 5.5},
+    "DE": {"center": [10.4,  51.2], "zoom": 4.5},
+    "DK": {"center": [10.0,  56.0], "zoom": 5.5},
+    "EE": {"center": [25.0,  58.7], "zoom": 6.0},
+    "ES": {"center": [-3.7,  40.4], "zoom": 4.5},
+    "FI": {"center": [26.0,  64.0], "zoom": 4.0},
+    "FR": {"center": [2.2,   46.6], "zoom": 4.5},
+    "GB": {"center": [-2.0,  54.0], "zoom": 4.5},
+    "GE": {"center": [43.8,  42.3], "zoom": 6.0},
+    "GR": {"center": [22.0,  39.5], "zoom": 5.0},
+    "HR": {"center": [16.4,  45.1], "zoom": 6.0},
+    "HU": {"center": [19.0,  47.2], "zoom": 5.5},
+    "IE": {"center": [-8.0,  53.4], "zoom": 5.5},
+    "IS": {"center": [-19.0, 65.0], "zoom": 4.5},
+    "IT": {"center": [12.5,  42.5], "zoom": 4.5},
+    "LT": {"center": [24.0,  55.9], "zoom": 6.0},
+    "LU": {"center": [6.1,   49.8], "zoom": 8.5},
+    "LV": {"center": [25.0,  56.9], "zoom": 6.0},
+    "ME": {"center": [19.4,  42.8], "zoom": 7.0},
+    "MK": {"center": [21.7,  41.6], "zoom": 7.0},
+    "MT": {"center": [14.4,  35.9], "zoom": 9.0},
+    "NL": {"center": [5.3,   52.3], "zoom": 6.0},
+    "NO": {"center": [10.7,  65.0], "zoom": 3.5},
+    "PL": {"center": [19.5,  52.0], "zoom": 5.0},
+    "PT": {"center": [-8.0,  39.5], "zoom": 5.0},
+    "RO": {"center": [25.0,  45.8], "zoom": 5.0},
+    "RS": {"center": [21.0,  44.0], "zoom": 6.0},
+    "SE": {"center": [17.0,  63.0], "zoom": 3.5},
+    "SI": {"center": [14.8,  46.1], "zoom": 7.0},
+    "SK": {"center": [19.2,  48.7], "zoom": 6.0},
+    "TR": {"center": [35.0,  39.0], "zoom": 4.0},
+    "UA": {"center": [32.0,  49.0], "zoom": 4.5},
+    "XK": {"center": [21.1,  42.6], "zoom": 7.5},
+}
+
 EAQI_THRESHOLDS = {
     "PM2.5": [(5, "Good", "#4477AA"), (15, "Fair", "#77AADD"), (50, "Moderate", "#DDCC77"),
               (90, "Poor", "#EE7733"), (140, "Very poor", "#CC3311"), (float("inf"), "Extremely poor", "#882255")],
@@ -121,24 +168,46 @@ def apply_aqi_styling(df, pollutant):
     return df
 
 
-def render_legend(pollutant):
+_EAQI_LIGHT_SWATCHES = {"Fair", "Moderate"}
+
+def build_eaqi_legend(pollutant):
+    """Unified EAQI legend used by both Live and Historic tabs."""
     thresholds = EAQI_THRESHOLDS.get(pollutant, EAQI_THRESHOLDS["PM10"])
     prev, swatches = 0, []
     for upper, label, colour in thresholds:
         rng = f"{prev}–{upper}" if upper != float("inf") else f"{prev}+"
+        if label in _EAQI_LIGHT_SWATCHES:
+            txt, shadow = "#222", ""
+        else:
+            txt, shadow = "#fff", "text-shadow:0 1px 2px rgba(0,0,0,0.55);"
         swatches.append(
-            f'<span style="background:{colour};color:#111;padding:2px 8px;'
-            f'border-radius:3px;font-size:11px;white-space:nowrap">'
-            f'{label}&nbsp;<span style="font-size:10px">{rng}</span></span>'
+            f'<span style="background:{colour};color:{txt};{shadow}'
+            f'padding:2px 7px;border-radius:3px;font-size:11px;font-weight:600;'
+            f'white-space:nowrap;display:inline-block;margin:2px 3px 2px 0">'
+            f'{label}&thinsp;<span style="font-size:10px;font-weight:400">{rng}</span></span>'
         )
         prev = upper if upper != float("inf") else prev
+    swatches.append(
+        '<span style="background:#808080;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.55);'
+        'padding:2px 7px;border-radius:3px;font-size:11px;font-weight:600;'
+        'white-space:nowrap;display:inline-block;margin:2px 3px 2px 0">No data</span>'
+    )
+
+    _dot = "display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:4px;box-sizing:border-box;"
+    urban_dot    = f'<span style="{_dot}background:#6699cc;"></span>'
+    suburban_dot = f'<span style="{_dot}background:#6699cc;border:2px solid #fff;"></span>'
+    rural_dot    = f'<span style="{_dot}background:transparent;border:2.5px solid #6699cc;"></span>'
+
     return (
-        '<div style="margin-top:8px;font-size:12px;color:#ccc;line-height:2.2">'
-        f'<b>{pollutant} Air Quality Index (µg/m³)</b><br>'
-        + " &thinsp;".join(swatches)
-        + '<br><span style="color:#aaa;font-size:11px;margin-top:6px;display:block">'
-        + '<b>Station types:</b> ● Filled: urban &nbsp;|&nbsp; ◉ Filled + white border: suburban &nbsp;|&nbsp; ○ Hollow EAQI-colour ring: rural</span>'
-        + "</div>"
+        '<div style="margin-top:8px;line-height:2.0">'
+        f'<div style="font-size:14px;font-weight:700;color:inherit;margin-bottom:4px">'
+        f'European Air Quality Index (EAQI) &mdash; {pollutant}</div>'
+        '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:0;margin-bottom:4px">'
+        + "".join(swatches)
+        + '</div>'
+        f'<div style="font-size:13px;color:inherit;opacity:0.75">'
+        f'Station types:&ensp;{urban_dot}Urban&ensp;{suburban_dot}Suburban&ensp;{rural_dot}Rural'
+        '</div></div>'
     )
 
 
@@ -447,6 +516,17 @@ def get_db():
 
 # ── Historic query functions ───────────────────────────────────────────────────
 
+@lru_cache(maxsize=1)
+def hist_available_countries():
+    """Return the set of country codes that have at least one row in either historic table."""
+    conn = get_db()
+    df = conn.execute("""
+        SELECT DISTINCT "Country" FROM airquality_5
+        UNION
+        SELECT DISTINCT "Country" FROM airquality_6001
+    """).fetch_df()
+    return set(df["Country"].dropna().str.strip())
+
 @lru_cache(maxsize=4)
 def hist_get_all_stations(table_name):
     conn = get_db()
@@ -528,13 +608,15 @@ def hist_get_map_data(date_str, table_name, master_df=None):
     return df
 
 
-@lru_cache(maxsize=32)
-def hist_get_daily_averages(table_name, start, end):
+@lru_cache(maxsize=64)
+def hist_get_daily_averages(table_name, start, end, country="ALL"):
     conn = get_db()
+    country_clause = f'AND "Country" = \'{country}\'' if country != "ALL" else ""
     query = f"""
         SELECT DATE("Date") as "Date", AVG("Value") as AvgValue
         FROM {table_name}
         WHERE "Value" IS NOT NULL AND DATE("Date") BETWEEN '{start}' AND '{end}'
+          {country_clause}
         GROUP BY DATE("Date") ORDER BY "Date"
     """
     df = conn.execute(query).fetch_df()
@@ -542,9 +624,10 @@ def hist_get_daily_averages(table_name, start, end):
     return df
 
 
-@lru_cache(maxsize=16)
-def hist_get_yoy_data(table_name, start, end):
+@lru_cache(maxsize=32)
+def hist_get_yoy_data(table_name, start, end, country="ALL"):
     conn = get_db()
+    country_clause = f'AND "Country" = \'{country}\'' if country != "ALL" else ""
     query = f"""
         SELECT
             YEAR("Date")  AS Year,
@@ -552,6 +635,7 @@ def hist_get_yoy_data(table_name, start, end):
             AVG("Value")  AS AvgValue
         FROM {table_name}
         WHERE "Value" IS NOT NULL AND DATE("Date") BETWEEN '{start}' AND '{end}'
+          {country_clause}
         GROUP BY YEAR("Date"), MONTH("Date")
         ORDER BY Year, Month
     """
@@ -597,13 +681,46 @@ def build_hist_map_payload(df):
     return payload
 
 
-def build_hist_avg_chart(df_avg, current_date):
+def build_hist_avg_chart(df_avg, current_date, pollutant="PM10"):
     if df_avg.empty:
         return (alt.Chart(pd.DataFrame({"Date": [], "AvgValue": []}))
                 .mark_line().properties(height=300, width="container").to_dict())
     df = df_avg.copy()
     df["DateStr"] = df["Date"].dt.strftime("%Y-%m-%d")
     date_str = str(current_date)
+
+    # EAQI background bands — clipped to data range so axis isn't distorted.
+    # Alternating opacity (0.30 / 0.20) makes adjacent bands distinguishable;
+    # a subtle stroke adds a visible boundary between them.
+    _BAND_OPACITIES = [0.30, 0.20, 0.30, 0.20, 0.30, 0.20]
+    thresholds = EAQI_THRESHOLDS.get(pollutant, EAQI_THRESHOLDS["PM10"])
+    y_max = float(df["AvgValue"].max()) * 1.1
+    band_data, prev = [], 0.0
+    for i, (upper, label, colour) in enumerate(thresholds):
+        y2 = min(float(upper), y_max) if upper != float("inf") else y_max
+        if prev >= y_max:
+            break
+        band_data.append({"y1": prev, "y2": y2, "label": label, "colour": colour,
+                          "op": _BAND_OPACITIES[i % len(_BAND_OPACITIES)]})
+        prev = float(upper) if upper != float("inf") else y_max
+    bands_df = pd.DataFrame(band_data)
+    aqi_col_scale = alt.Scale(
+        domain=[r["label"] for r in band_data],
+        range=[r["colour"] for r in band_data],
+    )
+    op_scale = alt.Scale(
+        domain=[r["label"] for r in band_data],
+        range=[r["op"]    for r in band_data],
+    )
+    bands = (
+        alt.Chart(bands_df).mark_rect(stroke="#555", strokeWidth=0.5)
+        .encode(
+            y=alt.Y("y1:Q", scale=alt.Scale(domain=[0, y_max])),
+            y2=alt.Y2("y2:Q"),
+            color=alt.Color("label:N", scale=aqi_col_scale, legend=None),
+            opacity=alt.Opacity("label:N", scale=op_scale, legend=None),
+        )
+    )
 
     date_param = alt.param(name="histCurDate", value=date_str)
 
@@ -624,16 +741,24 @@ def build_hist_avg_chart(df_avg, current_date):
     base = (alt.Chart(df).mark_line(color="gray", strokeWidth=2)
             .encode(x=alt.X("Date:T", title="Date"),
                     y=alt.Y("AvgValue:Q", title="Daily Average Value",
+                            scale=alt.Scale(domain=[0, y_max]),
                             axis=alt.Axis(titlePadding=15)))
             .properties(height=300, title="Daily Average Values Over Time")
             .interactive())
     dot = (alt.Chart(df)
            .mark_circle(color="red", size=100, opacity=1)
-           .encode(x="Date:T", y="AvgValue:Q")
+           .encode(
+               x="Date:T",
+               y="AvgValue:Q",
+               tooltip=[
+                   alt.Tooltip("Date:T", title="Date", format="%d %b %Y"),
+                   alt.Tooltip("AvgValue:Q", title="Value", format=".1f"),
+               ],
+           )
            .transform_filter("datum.DateStr === histCurDate"))
-    spec = (alt.layer(base, dot, click_target)
+    spec = (alt.layer(bands, base, dot, click_target)
             .add_params(date_param)
-            .resolve_scale(y="shared")
+            .resolve_scale(y="shared", color="independent")
             .properties(width="container")
             .to_dict())
     # Ensure the chart fills its container div at any window size.
@@ -651,13 +776,48 @@ def build_yoy_chart(df_yoy, pollutant):
         if years[-1] not in picked:
             picked = list(picked) + [years[-1]]
         df_yoy = df_yoy[df_yoy["Year"].isin(picked)]
-    return (
+
+    # EAQI background bands — clipped to data range so axis isn't distorted.
+    # Alternating opacity (0.30 / 0.20) makes adjacent bands distinguishable;
+    # a subtle stroke adds a visible boundary between them.
+    _BAND_OPACITIES = [0.30, 0.20, 0.30, 0.20, 0.30, 0.20]
+    thresholds = EAQI_THRESHOLDS.get(pollutant, EAQI_THRESHOLDS["PM10"])
+    y_max = float(df_yoy["AvgValue"].max()) * 1.1
+    band_data, prev = [], 0.0
+    for i, (upper, label, colour) in enumerate(thresholds):
+        y2 = min(float(upper), y_max) if upper != float("inf") else y_max
+        if prev >= y_max:
+            break
+        band_data.append({"y1": prev, "y2": y2, "label": label, "colour": colour,
+                          "op": _BAND_OPACITIES[i % len(_BAND_OPACITIES)]})
+        prev = float(upper) if upper != float("inf") else y_max
+    bands_df = pd.DataFrame(band_data)
+    aqi_col_scale = alt.Scale(
+        domain=[r["label"] for r in band_data],
+        range=[r["colour"] for r in band_data],
+    )
+    op_scale = alt.Scale(
+        domain=[r["label"] for r in band_data],
+        range=[r["op"]    for r in band_data],
+    )
+    bands = (
+        alt.Chart(bands_df).mark_rect(stroke="#555", strokeWidth=0.5)
+        .encode(
+            y=alt.Y("y1:Q", scale=alt.Scale(domain=[0, y_max])),
+            y2=alt.Y2("y2:Q"),
+            color=alt.Color("label:N", scale=aqi_col_scale, legend=None),
+            opacity=alt.Opacity("label:N", scale=op_scale, legend=None),
+        )
+    )
+
+    line = (
         alt.Chart(df_yoy)
         .mark_line(point=True, strokeWidth=2)
         .encode(
             x=alt.X("MonthDate:T", title="Month",
                     axis=alt.Axis(format="%b", tickCount="month", labelAngle=0)),
             y=alt.Y("AvgValue:Q", title=f"{pollutant} Monthly Avg (µg/m³)",
+                    scale=alt.Scale(domain=[0, y_max]),
                     axis=alt.Axis(titlePadding=15)),
             color=alt.Color("YearStr:N", title="Year"),
             tooltip=[
@@ -668,26 +828,11 @@ def build_yoy_chart(df_yoy, pollutant):
         )
         .properties(height=300, title="Year-over-Year Comparison (monthly averages)")
         .interactive()
+    )
+    return (
+        alt.layer(bands, line)
+        .resolve_scale(color="independent")
         .properties(width="container")
     )
 
 
-def build_hist_eaqi_legend(pollutant):
-    thresholds = EAQI_THRESHOLDS.get(pollutant, EAQI_THRESHOLDS["PM10"])
-    prev, swatches = 0, []
-    for upper, label, colour in thresholds:
-        rng = f"{prev}–{upper}" if upper != float("inf") else f"{prev}+"
-        swatches.append(
-            f'<span style="background:{colour};color:#111;padding:2px 8px;'
-            f'border-radius:3px;font-size:11px;white-space:nowrap;margin-right:3px">'
-            f'{label}&nbsp;<span style="font-size:10px">{rng}</span></span>'
-        )
-        prev = upper if upper != float("inf") else prev
-    return (
-        '<div style="margin-top:6px;font-size:12px;color:#ccc;line-height:2.2">'
-        f'<b>{pollutant} EAQI (µg/m³):</b> '
-        + " ".join(swatches)
-        + '<br><span style="color:#aaa;font-size:11px;margin-top:6px;display:block">'
-        + '<b>Station types:</b> ● Filled: urban &nbsp;|&nbsp; ◉ Filled + white border: suburban &nbsp;|&nbsp; ○ Hollow EAQI-colour ring: rural</span>'
-        + "</div>"
-    )
