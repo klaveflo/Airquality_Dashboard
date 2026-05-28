@@ -15,10 +15,10 @@ from shiny import ui, render, reactive
 from shinywidgets import output_widget, render_altair
 
 from shared import (
-    get_aqi_label, EAQI_COLOURS,
+    get_aqi_label, EAQI_COLOURS, COUNTRIES, COUNTRY_VIEWS,
     hist_get_master_stations, hist_get_map_data, hist_get_daily_averages,
-    hist_get_yoy_data, build_hist_map_payload,
-    build_hist_avg_chart, build_yoy_chart, build_hist_eaqi_legend,
+    hist_get_yoy_data, hist_available_countries, build_hist_map_payload,
+    build_hist_avg_chart, build_yoy_chart, build_eaqi_legend,
 )
 from query_llm import ask_llm_about_peak
 
@@ -146,6 +146,11 @@ _HIST_MAP_INIT_JS = r"""
     Shiny.addCustomMessageHandler('update_hist_map_data', function(msg) {
       applyData(msg);
     });
+    Shiny.addCustomMessageHandler('update_hist_map_view', function(msg) {
+      if (mapInst) {
+        mapInst.flyTo({ center: msg.center, zoom: msg.zoom, duration: 800 });
+      }
+    });
   }
 
   function boot() { initMap(); setupHandlers(); }
@@ -254,6 +259,27 @@ def hist_ui():
             ),
             # Right: controls + stats
             ui.div(
+                ui.accordion(
+                    ui.accordion_panel(
+                        "About this view",
+                        ui.tags.p(
+                            "Explore long-term air quality trends from the EEA historical "
+                            "database. Select a pollutant, country, and date range to see how "
+                            "daily average concentrations evolved over time. Use the animation "
+                            "to watch pollution change day by day, or click the chart to jump "
+                            "to a specific date.",
+                            style="color:#bbb; font-size:12px; line-height:1.6;"
+                        ),
+                        ui.tags.p(
+                            "The Year-over-Year chart highlights seasonal patterns and "
+                            "long-term trends across multiple years. Use 'Jump to Peak' to "
+                            "locate the highest recorded value, or 'Ask AI' to get context "
+                            "about what may have caused a pollution spike.",
+                            style="color:#bbb; font-size:12px; line-height:1.6;"
+                        ),
+                    ),
+                    open=False,
+                ),
                 ui.layout_columns(
                     ui.h4("Historic Data"),
                     ui.input_select("hist_pollutant", None,
@@ -261,6 +287,13 @@ def hist_ui():
                                     selected="PM10"),
                     col_widths=(6, 6),
                 ),
+                ui.input_select("hist_country", "Country",
+                                choices={"ALL": "All Europe", **{
+                                    k: v for k, v in COUNTRIES.items()
+                                    if k in hist_available_countries()
+                                }},
+                                selected="ALL",
+                                width="100%"),
                 ui.layout_columns(
                     ui.input_date("hist_start", "Start Bound",
                                   value="2013-01-01",
@@ -282,14 +315,14 @@ def hist_ui():
                               min=_dt.date(2013, 1, 1),
                               max=_dt.date(2025, 1, 1)),
                 ui.layout_columns(
-                    ui.input_action_button("hist_play", "▶️ Play",
+                    ui.input_action_button("hist_play", "Play",
                                            class_="btn-primary"),
-                    ui.input_action_button("hist_stop", "⏹️ Stop"),
+                    ui.input_action_button("hist_stop", "Stop", class_="btn-outline-secondary"),
                     col_widths=(4, 8),
                 ),
                 ui.input_slider("hist_speed", "Animation Speed",
                                 min=1, max=5, value=3, step=1, ticks=True),
-                ui.input_action_button("hist_jump_peak", "🎯 Jump to Peak",
+                ui.input_action_button("hist_jump_peak", "Jump to Peak",
                                        style="width:100%;margin-bottom:8px;"
                                              "background-color:#EE7733;border-color:#EE7733;"
                                              "color:#fff;"),
@@ -309,13 +342,14 @@ def hist_ui():
 # ── Server ─────────────────────────────────────────────────────────────────────
 
 def hist_server(input, output, session):
-    hist_playing      = reactive.Value(False)
-    hist_anim_date    = reactive.Value(None)
-    hist_llm_resp     = reactive.Value("")
-    click_in_flight   = reactive.Value(False)
+    hist_playing             = reactive.Value(False)
+    hist_anim_date           = reactive.Value(None)
+    hist_llm_resp            = reactive.Value("")
+    click_in_flight          = reactive.Value(False)
+    _slider_update_in_flight = reactive.Value(False)
 
     # Speed map: slider value 1-5 → seconds per frame
-    _SPEED_MAP = {1: 1.2, 2: 0.8, 3: 0.5, 4: 0.25, 5: 0.1}
+    _SPEED_MAP = {1: 1.5, 2: 0.8, 3: 0.4, 4: 0.15, 5: 0.05}
 
     @reactive.calc
     def hist_table():
@@ -326,19 +360,28 @@ def hist_server(input, output, session):
         with ui.Progress(min=0, max=1) as p:
             p.set(message="Loading station list…")
             return hist_get_master_stations(
-                hist_table(), str(input.hist_start()), str(input.hist_end()))
+                hist_table(), str(input.hist_start()), str(input.hist_end()),
+                input.hist_country())
 
     @reactive.calc
     def hist_averages():
         with ui.Progress(min=0, max=1) as p:
             p.set(message="Loading daily averages…")
             return hist_get_daily_averages(
-                hist_table(), str(input.hist_start()), str(input.hist_end()))
+                hist_table(), str(input.hist_start()), str(input.hist_end()),
+                input.hist_country())
 
     @reactive.calc
     def hist_yoy():
         return hist_get_yoy_data(
-            hist_table(), str(input.hist_start()), str(input.hist_end()))
+            hist_table(), str(input.hist_start()), str(input.hist_end()),
+            input.hist_country())
+
+    @reactive.effect
+    @reactive.event(input.hist_country)
+    async def _hist_fly_to_country():
+        view = COUNTRY_VIEWS.get(input.hist_country(), COUNTRY_VIEWS["ALL"])
+        await session.send_custom_message("update_hist_map_view", view)
 
     # ── Bug fix 1 & 2: use hist_playing() not hist_playing.get() ──────────────
     # Using .get() breaks reactive dependency — the effect never re-fires when
@@ -359,6 +402,7 @@ def hist_server(input, output, session):
             last = hist_anim_date()
         hist_playing.set(False)
         if last is not None:
+            _slider_update_in_flight.set(True)
             ui.update_slider("hist_date", value=last)
 
     @reactive.effect
@@ -372,7 +416,7 @@ def hist_server(input, output, session):
         nxt = cur + _dt.timedelta(days=1)
         if nxt > input.hist_end():
             hist_playing.set(False)
-            # Single slider sync at end-of-range — no in-flight queue
+            _slider_update_in_flight.set(True)
             ui.update_slider("hist_date", value=cur)
         else:
             hist_anim_date.set(nxt)
@@ -386,6 +430,9 @@ def hist_server(input, output, session):
     @reactive.event(input.hist_date)
     def _on_slider_change():
         with reactive.isolate():
+            if _slider_update_in_flight():
+                _slider_update_in_flight.set(False)
+                return
             if not hist_playing():
                 hist_anim_date.set(input.hist_date())
 
@@ -398,6 +445,7 @@ def hist_server(input, output, session):
             return
         peak_date = df.loc[df["AvgValue"].idxmax(), "Date"].date()
         hist_anim_date.set(peak_date)
+        _slider_update_in_flight.set(True)
         ui.update_slider("hist_date", value=peak_date)
 
     # Chart click → jump to clicked date (same behaviour as slider scrub)
@@ -418,6 +466,7 @@ def hist_server(input, output, session):
         hist_playing.set(False)
         click_in_flight.set(True)
         hist_anim_date.set(clicked)
+        _slider_update_in_flight.set(True)
         ui.update_slider("hist_date", value=clicked)
 
     # Manual date picker → jump to picked date
@@ -429,6 +478,7 @@ def hist_server(input, output, session):
             return
         hist_playing.set(False)
         hist_anim_date.set(picked)
+        _slider_update_in_flight.set(True)
         ui.update_slider("hist_date", value=picked)
 
     # Keep slider and date-picker min/max in sync with the date-range pickers
@@ -463,7 +513,7 @@ def hist_server(input, output, session):
     @output
     @render.ui
     def hist_eaqi_legend():
-        return ui.HTML(build_hist_eaqi_legend(input.hist_pollutant()))
+        return ui.HTML(build_eaqi_legend(input.hist_pollutant()))
 
     # Timestamp of the last map push — used to throttle at high animation speeds.
     _map_push_ts = [0.0]
@@ -476,9 +526,9 @@ def hist_server(input, output, session):
         # there.  The date label still advances every frame.
         with reactive.isolate():
             spd = input.hist_speed()
-        if hist_playing() and spd >= 4:
+        if hist_playing() and spd >= 5:
             now = _time.monotonic()
-            if now - _map_push_ts[0] < 0.35:
+            if now - _map_push_ts[0] < 0.2:
                 return
             _map_push_ts[0] = now
         df = hist_get_map_data(str(cur), hist_table(), hist_master())
@@ -495,7 +545,7 @@ def hist_server(input, output, session):
         df = hist_averages()
         with reactive.isolate():
             default_date = df.iloc[0]["Date"].date() if not df.empty else input.hist_start()
-        spec = build_hist_avg_chart(df, default_date)
+        spec = build_hist_avg_chart(df, default_date, input.hist_pollutant())
         await session.send_custom_message("update_hist_avg_spec", spec)
 
     @reactive.effect
@@ -536,7 +586,7 @@ def hist_server(input, output, session):
         return ui.HTML(f"""
 <div style="background:#1a1a1a;border-radius:6px;padding:12px;font-size:13px;
             line-height:1.9;border:1px solid #333;">
-  <b>📊 Period Statistics</b><br>
+  <b>Period Statistics</b><br>
   <span style="color:#aaa">Today's mean:</span>
     <b style="color:{colour}">{today_val}</b>
     <span style="color:{colour};font-size:11px"> {today_lbl}</span><br>
@@ -549,7 +599,8 @@ def hist_server(input, output, session):
     @reactive.effect
     @reactive.event(input.hist_ask)
     def _hist_ask():
-        resp = ask_llm_about_peak(str(hist_current_date()), input.hist_pollutant())
+        resp = ask_llm_about_peak(str(hist_current_date()), input.hist_pollutant(),
+                                   input.hist_country())
         hist_llm_resp.set(resp)
 
     @output

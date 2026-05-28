@@ -6,7 +6,7 @@ Exposes:
   live_server(input, output, session) → registers all outputs and effects
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 import altair as alt
@@ -15,10 +15,12 @@ from shiny import ui, render, reactive, req
 from shinywidgets import output_widget, render_altair
 
 from shared import (
-    COUNTRIES, POLLUTANTS, EAQI_THRESHOLDS, EAQI_LABELS, EAQI_COLOURS,
-    get_aqi_label, render_legend,
+    COUNTRIES, POLLUTANTS, EAQI_THRESHOLDS, EAQI_LABELS, EAQI_COLOURS, COUNTRY_VIEWS,
+    get_aqi_label, build_eaqi_legend,
     get_all_station_data_cached, build_hour_display, build_map_payload,
 )
+
+_LOCAL_OFFSET = datetime.now(timezone.utc).astimezone().utcoffset()
 
 
 # ── Client-side deck.gl + maplibre-gl bootstrap (live map) ────────────────────
@@ -170,6 +172,11 @@ _MAP_INIT_JS = r"""
         deckInstance.setProps({layers: buildLayers(pendingData)});
       }
     });
+    Shiny.addCustomMessageHandler('update_live_map_view', function (msg) {
+      if (mapInstance) {
+        mapInstance.flyTo({ center: msg.center, zoom: msg.zoom, duration: 800 });
+      }
+    });
   }
 
   function boot() { initMap(); setupShinyHandlers(); }
@@ -194,6 +201,25 @@ def live_ui():
                 ui.output_ui("comparison_section"),
             ),
             ui.div(
+                ui.accordion(
+                    ui.accordion_panel(
+                        "About this view",
+                        ui.tags.p(
+                            "Shows the latest hourly air quality readings from EEA monitoring "
+                            "stations. Select a country and pollutant, then click stations on "
+                            "the map to compare their readings over the past 7 days. Use the "
+                            "time slider or animation to step through hourly snapshots.",
+                            style="color:#bbb; font-size:12px; line-height:1.6;"
+                        ),
+                        ui.tags.p(
+                            "Station colors reflect the European Air Quality Index (EAQI) "
+                            "category at the displayed hour. Station shape indicates environment "
+                            "type: solid = urban, bordered = suburban, hollow ring = rural.",
+                            style="color:#bbb; font-size:12px; line-height:1.6;"
+                        ),
+                    ),
+                    open=False,
+                ),
                 ui.layout_columns(
                     ui.h4("Live Data"),
                     ui.input_select("pollutant", None, choices=POLLUTANTS, selected="PM10"),
@@ -204,10 +230,12 @@ def live_ui():
                 ui.input_action_button("load", "Load / Refresh", class_="btn-primary"),
                 ui.output_ui("hour_slider_ui"),
                 ui.layout_columns(
-                    ui.input_action_button("play", "▶️ Play", class_="btn-primary"),
-                    ui.input_action_button("stop", "⏹️ Stop"),
+                    ui.input_action_button("play", "Play", class_="btn-primary"),
+                    ui.input_action_button("stop", "Stop", class_="btn-outline-secondary"),
                     col_widths=(4, 8),
                 ),
+                ui.input_slider("live_speed", "Animation Speed",
+                                min=1, max=5, value=3, step=1, ticks=True),
                 ui.hr(),
                 ui.output_ui("station_count"),
                 ui.output_ui("selected_list"),
@@ -259,6 +287,12 @@ def live_server(input, output, session):
         anim_idx.set(0)
 
     @reactive.effect
+    @reactive.event(input.country)
+    async def _live_fly_to_country():
+        view = COUNTRY_VIEWS.get(input.country(), COUNTRY_VIEWS["ALL"])
+        await session.send_custom_message("update_live_map_view", view)
+
+    @reactive.effect
     @reactive.event(input.play)
     def _start_playing():
         hours = all_hours()
@@ -280,11 +314,15 @@ def live_server(input, output, session):
     def _stop_playing():
         playing.set(False)
 
+    _SPEED_MAP = {1: 1.5, 2: 0.8, 3: 0.4, 4: 0.15, 5: 0.05}
+
     @reactive.effect
     def _animate():
         if not playing():
             return
-        reactive.invalidate_later(0.5)
+        with reactive.isolate():
+            speed = _SPEED_MAP.get(input.live_speed(), 0.4)
+        reactive.invalidate_later(speed)
         hours = all_hours()
         if not hours:
             playing.set(False)
@@ -363,12 +401,43 @@ def live_server(input, output, session):
         h = display_hour()
         if playing() and hours:
             idx = anim_idx() % len(hours)
-            return ui.tags.div(ui.HTML(
-                f"<b>Animating:</b> {h.strftime('%d %b %Y, %H:%M')} "
-                f"<i>(frame {idx + 1} / {len(hours)})</i>"
-            ))
-        label = h.strftime("%d %b %Y, %H:%M") if h else "—"
-        return ui.tags.div(ui.HTML(f"<b>Viewing:</b> {label}"))
+            iso = h.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+            return ui.tags.div(ui.HTML(f"""
+<b>Animating:</b> <span id="map-label-time" data-utc="{iso}"></span>
+<i>(frame {idx + 1} / {len(hours)})</i>
+<script>
+(function() {{
+    var el = document.getElementById('map-label-time');
+    if (el) {{
+        var d = new Date(el.getAttribute('data-utc'));
+        el.textContent = d.toLocaleDateString('en-GB', {{
+            day: '2-digit', month: 'short', year: 'numeric'
+        }}) + ', ' + d.toLocaleTimeString('en-GB', {{
+            hour: '2-digit', minute: '2-digit', hour12: false
+        }});
+    }}
+}})();
+</script>
+"""))
+        if h:
+            iso = h.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+            return ui.tags.div(ui.HTML(f"""
+<b>Viewing:</b> <span id="map-label-time" data-utc="{iso}"></span>
+<script>
+(function() {{
+    var el = document.getElementById('map-label-time');
+    if (el) {{
+        var d = new Date(el.getAttribute('data-utc'));
+        el.textContent = d.toLocaleDateString('en-GB', {{
+            day: '2-digit', month: 'short', year: 'numeric'
+        }}) + ', ' + d.toLocaleTimeString('en-GB', {{
+            hour: '2-digit', minute: '2-digit', hour12: false
+        }});
+    }}
+}})();
+</script>
+"""))
+        return ui.tags.div(ui.HTML("<b>Viewing:</b> —"))
 
     @output
     @render.ui
@@ -395,7 +464,7 @@ def live_server(input, output, session):
     def map_legend():
         if df_meta().empty or df_meta()["lat"].isna().all():
             return ui.tags.div()
-        return ui.HTML(render_legend(input.pollutant()))
+        return ui.HTML(build_eaqi_legend(input.pollutant()))
 
     @output
     @render.ui
@@ -410,7 +479,7 @@ def live_server(input, output, session):
             rows = "".join(f"<div style='padding-left:8px'>• {s}</div>" for s in sel)
             return ui.tags.div(
                 ui.HTML(f"<b>Selected for comparison:</b>{rows}"),
-                ui.input_action_button("clear_sel", "Clear selection"),
+                ui.input_action_button("clear_sel", "Clear selection", class_="btn-outline-secondary"),
             )
         return ui.tags.div(
             "Click up to 2 stations on the map (or pick below) to compare them.",
@@ -486,21 +555,12 @@ def live_server(input, output, session):
             return ui.tags.div()
         return ui.tags.div(
             ui.hr(),
-            ui.tags.style("""
-                #breakdown_chart { margin-bottom: 0 !important; }
-                #breakdown_chart .widget-subarea { margin-bottom: 0 !important; }
-                #summary_cards { margin-top: 4px !important; }
-                #summary_cards > div { margin-top: 0 !important; }
-            """),
             ui.layout_columns(
                 output_widget("line_chart"),
-                ui.div(
-                    output_widget("breakdown_chart"),
-                    ui.output_ui("summary_cards"),
-                    style="display:flex;flex-direction:column;gap:4px;",
-                ),
-                col_widths=(7, 5),
+                output_widget("breakdown_chart"),
+                col_widths=(6, 6),
             ),
+            ui.output_ui("summary_cards"),
         )
 
     @reactive.calc
@@ -523,17 +583,21 @@ def live_server(input, output, session):
     def line_chart():
         sel_df = df_sel()
         req(not sel_df.empty)
+        sel_df = sel_df.copy()
+        sel_df["Start"] = sel_df["Start"] + _LOCAL_OFFSET
         pollutant  = input.pollutant()
         thresholds = EAQI_THRESHOLDS.get(pollutant, EAQI_THRESHOLDS["PM10"])
         y_max = max(float(sel_df["Value"].max()) * 1.15, thresholds[1][0] + 1)
 
+        _BAND_OPACITIES = [0.30, 0.20, 0.30, 0.20, 0.30, 0.20]
         band_data, prev = [], 0
-        for upper, label, colour in thresholds:
+        for i, (upper, label, colour) in enumerate(thresholds):
             y2 = min(upper, y_max) if upper != float("inf") else y_max
             if prev >= y_max:
                 break
             band_data.append({"y1": float(prev), "y2": float(y2),
-                               "label": label, "colour": colour})
+                               "label": label, "colour": colour,
+                               "op": _BAND_OPACITIES[i % len(_BAND_OPACITIES)]})
             prev = upper if upper != float("inf") else y_max
 
         bands_df      = pd.DataFrame(band_data)
@@ -541,12 +605,17 @@ def live_server(input, output, session):
             domain=[r["label"] for r in band_data],
             range=[r["colour"] for r in band_data],
         )
+        op_scale = alt.Scale(
+            domain=[r["label"] for r in band_data],
+            range=[r["op"]    for r in band_data],
+        )
         bands = (
-            alt.Chart(bands_df).mark_rect(opacity=0.15)
+            alt.Chart(bands_df).mark_rect(stroke="#555", strokeWidth=0.5)
             .encode(
                 y=alt.Y("y1:Q", scale=alt.Scale(domain=[0, y_max])),
                 y2=alt.Y2("y2:Q"),
                 color=alt.Color("label:N", scale=aqi_col_scale, legend=None),
+                opacity=alt.Opacity("label:N", scale=op_scale, legend=None),
             )
         )
         line = (
@@ -564,7 +633,7 @@ def live_server(input, output, session):
                     alt.Tooltip("station_name:N", title="Station"),
                 ],
             )
-            .properties(height=300, title="Hourly Readings with Air Quality Zones")
+            .properties(height=260, title="Hourly Readings with Air Quality Zones")
             .interactive()
         )
         return (alt.layer(bands, line)
@@ -599,7 +668,7 @@ def live_server(input, output, session):
                     alt.Tooltip("hours:Q", title="Hours"),
                 ],
             )
-            .properties(height=120, title="Air Quality Breakdown (share of hours)",
+            .properties(height=260, title="Air Quality Breakdown (share of hours)",
                         width="container")
         )
 
@@ -621,8 +690,8 @@ def live_server(input, output, session):
             best     = sdf.loc[sdf["Value"].idxmin()]
             worst_lbl = get_aqi_label(worst["Value"], pollutant) or "—"
             best_lbl  = get_aqi_label(best["Value"], pollutant) or "—"
-            cards.append(ui.HTML(f"""
-<div style="border-left:4px solid {colour};padding:8px 14px;margin:8px 0;
+            cards.append(f"""
+<div style="flex:1;min-width:250px;border-left:4px solid {colour};padding:8px 14px;
             background:#1a1a1a;border-radius:4px;font-size:13px;line-height:1.8">
   <b>{station}</b><br>
   <span style="color:{colour}">● Mostly {dominant} this week</span><br>
@@ -632,6 +701,9 @@ def live_server(input, output, session):
   <span style="color:#bbb">⬇ Best:&nbsp; {best["Start"].strftime("%a %d %b, %H:%M")} —
     {best["Value"]:.1f} µg/m³
     <span style="color:{EAQI_COLOURS.get(best_lbl,'#888')}">({best_lbl})</span></span>
-</div>
-"""))
-        return ui.tags.div(*cards)
+</div>""")
+        return ui.HTML(
+            '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;">'
+            + "".join(cards)
+            + "</div>"
+        )

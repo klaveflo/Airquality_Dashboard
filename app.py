@@ -59,6 +59,16 @@ h1, h2, h3, h4, h5, h6 { color: #fafafa; }
 }
 .btn-primary { background-color: #4477AA; border-color: #4477AA; color: #fff; }
 .btn-primary:hover { background-color: #2d5a8e; border-color: #2d5a8e; color: #fff; }
+.btn-outline-secondary {
+    background-color: transparent !important;
+    border: 1.5px solid #888 !important;
+    color: #fafafa !important;
+}
+.btn-outline-secondary:hover {
+    background-color: #333 !important;
+    border-color: #aaa !important;
+    color: #fafafa !important;
+}
 .irs--shiny .irs-bar { background: #4477AA; border-top-color: #4477AA; border-bottom-color: #4477AA; }
 .irs--shiny .irs-from, .irs--shiny .irs-to, .irs--shiny .irs-single { background-color: #4477AA; }
 .irs--shiny .irs-line { background: #333; border-color: #333; }
@@ -94,6 +104,15 @@ h1, h2, h3, h4, h5, h6 { color: #fafafa; }
     .irs--shiny .irs-grid-text { color: #555; }
     .shiny-notification { background-color: #ffffff; color: #1a1a1a; border-color: #ddd; }
     #deck-map, #deck-hist-map { background: #e8eaf0; }
+    .btn-outline-secondary {
+        border-color: #555 !important;
+        color: #1a1a1a !important;
+    }
+    .btn-outline-secondary:hover {
+        background-color: #e0e0e0 !important;
+        border-color: #333 !important;
+        color: #1a1a1a !important;
+    }
 }
 """
 
@@ -109,6 +128,12 @@ app_ui = ui.page_fluid(
     ),
     ui.tags.style(_APP_CSS),
     ui.h1("Air Quality Map Dashboard"),
+    ui.tags.p(
+        "Explore real-time and historical air quality across Europe using data from the "
+        "European Environment Agency (EEA). Compare monitoring stations, track pollution "
+        "levels over time, and examine how air quality varies by region and season.",
+        style="color:#aaa; font-size:14px; margin-bottom:16px; max-width:900px;"
+    ),
     ui.navset_tab(
         live_ui(),
         hist_ui(),
