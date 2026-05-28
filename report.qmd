@@ -108,8 +108,8 @@ format:
 
           \vspace{1.2cm}
 
-          \begin{minipage}{0.82\linewidth}
-          \begin{tabular}{@{}p{0.42\linewidth}@{\hspace{1.8cm}}p{0.22\linewidth}@{}}
+          \begin{minipage}{0.86\linewidth}
+          \begin{tabular}{@{}p{0.40\linewidth}@{\hspace{2.7cm}}p{0.24\linewidth}@{}}
           \textit{Authors:} & \textit{Supervisor:}\\[0.25cm]
           Lejla Beganovic & Patrick Laube\\
           Florian Klaver & \\
@@ -124,11 +124,6 @@ format:
           {\large \@date\par}
 
           \vspace{0.85cm}
-
-          {\large Study programme:\par}
-          \vspace{0.25cm}
-          {\large Communication and Collaboration in Environmental Science\par}
-          {\large CCES FS26\par}
 
           \vspace*{0.75cm}
           \end{titlepage}
@@ -150,78 +145,6 @@ execute:
   message: false
   eval: false
 ---
- Computational Notebook}\\[2pt]
-              {\small\color{zhawgray}
-                Extension Topic: \textbf{Animation} \quad|\quad
-                Submission: \textbf{\@date}}
-            \vspace{4pt}}%
-          }
-
-          \vspace{0.9cm}
-
-          % ── Metadata table ──────────────────────────────────────────────
-          \begin{minipage}{0.90\linewidth}
-          \centering
-          \renewcommand{\arraystretch}{1.50}
-          \begin{tabular}{p{0.32\linewidth} p{0.60\linewidth}}
-          \textbf{Course:}          & Communication and Collaboration in Environmental Science \\
-          \textbf{Programme:}       & CCES FS26 \\
-          \textbf{Institution:}     & Zurich University of Applied Sciences (ZHAW) \\
-          \textbf{Department:}      & Department of Life Sciences and Facility Management \\
-          \textbf{Supervisor:}      & Patrick Laube \\[0.25em]
-          \textbf{Repository:}      &
-            \href{https://github.com/[username]/air-quality-dashboard}%
-                 {\texttt{\small github.com/[username]/air-quality-dashboard}} \\
-          \end{tabular}
-          \end{minipage}
-
-          \vspace{0.9cm}
-
-          % ── Team members ────────────────────────────────────────────────
-          \begin{minipage}{0.55\linewidth}
-          \centering
-          {\normalsize\bfseries\color{zhawblue}Team Members\par}
-          \vspace{0.35cm}
-          \renewcommand{\arraystretch}{1.35}
-          \begin{tabular}{l}
-          Lejla Beganovic \\
-          Florian Klaver  \\
-          Claudio Wismer  \\
-          \end{tabular}
-          \end{minipage}
-
-          \vfill
-
-          % ── Tech-stack footer ────────────────────────────────────────────
-          {\color{lightgrayrule}\rule{\linewidth}{0.8pt}}\\[0.25cm]
-          {\normalsize\textcolor{zhawgray}{%
-            Interactive dashboard for exploring historic and live
-            European air quality data.}}\\[0.2cm]
-          {\small\textcolor{zhawgray}{%
-            Python\,\textbullet\,Shiny\,\textbullet\,deck.gl\,\textbullet\,
-            MapLibre\,GL\,\textbullet\,DuckDB\,\textbullet\,
-            Altair\,\textbullet\,Google\,Gemini}}
-          \vspace*{0.4cm}
-          \end{titlepage}
-          \clearpage
-        }
-        \makeatother
-
-        % Keep the table of contents on its own page, then start the report
-        \let\oldtableofcontents\tableofcontents
-        \renewcommand{\tableofcontents}{%
-          \clearpage
-          \thispagestyle{plain}
-          \oldtableofcontents
-          \clearpage
-        }
-execute:
-  echo: true
-  warning: false
-  message: false
-  eval: false
----
-
 # Introduction
 
 Air quality is one of the most pressing environmental and public health challenges in Europe. According to the World Health Organization, long-term exposure to particulate matter (PM2.5 and PM10) is responsible for millions of premature deaths globally each year [@who2021air], and the European Environment Agency (EEA) consistently identifies air pollution as the single largest environmental health risk across the continent. Concentrations of PM10, PM2.5, nitrogen dioxide (NO2), and ozone (O3) vary substantially across geography, seasons, and years — driven by industrial emissions, residential heating, road traffic, and meteorological conditions such as temperature inversions and long-range transport of Saharan dust. Making this complexity legible through interactive spatial and temporal visualisation is an essential tool for both scientific communication and evidence-based policy monitoring.
