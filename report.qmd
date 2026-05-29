@@ -1,12 +1,14 @@
 ---
 title: "Interactive Air Quality Map Dashboard"
-subtitle: "Communication and Collaboration in Environmental Science — Group Assignment, Spring 2026"
+subtitle: "Communication and Collaboration in Environmental Science. Group Assignment, Spring 2026"
 author:
   - name: "Lejla Beganovic"
   - name: "Florian Klaver"
   - name: "Claudio Wismer"
 date: "31 May 2026"
-bibliography: references.bib
+bibliography: references_apa.bib
+csl: apa.csl
+link-citations: true
 format:
   pdf:
     toc: true
@@ -16,7 +18,7 @@ format:
     colorlinks: true
     linkcolor: "black"
     urlcolor: "black"
-    citecolor: "black"
+    citecolor: "blue"
     geometry: margin=2.5cm
     fontsize: 11pt
     linestretch: 1.2
@@ -34,6 +36,8 @@ format:
         \usepackage{array}
         \usepackage{tabularx}
         \usepackage{microtype}
+        \usepackage{xurl}
+        \urlstyle{same}
 
         % Neutral colour definitions.
         % zhawblue/zhawgray are kept as aliases so old snippets cannot break compilation.
@@ -123,6 +127,9 @@ format:
           \vspace{0.25cm}
           {\large \@date\par}
 
+          \vspace{0.55cm}
+          {\small Source code repository: \url{https://github.com/klaveflo/Airquality_Dashboard}\par}
+
           \vspace{0.85cm}
 
           \vspace*{0.75cm}
@@ -149,7 +156,7 @@ execute:
 
 Air quality is one of the most pressing environmental and public health challenges in Europe. Long-term exposure to particulate matter (PM2.5 and PM10) is responsible for millions of premature deaths globally each year [@who2021air], and the European Environment Agency (EEA) identifies air pollution as the continent's largest environmental health risk. Concentrations of PM10, PM2.5, NO2, and O3 vary substantially across geography and season, driven by industrial emissions, residential heating, road traffic, and meteorology such as temperature inversions and Saharan dust transport. Making this complexity legible through interactive visualisation is essential for both scientific communication and evidence-based policy monitoring.
 
-This project develops an **interactive, map-centred dashboard** built on open data from the **EEA Air Quality e-Reporting (AQeR)** programme [@eea2024aqe], the pan-European monitoring network covering more than 40 countries and thousands of stations. It was developed for the ZHAW module *Communication and Collaboration in Environmental Science* (CCES FS26), applying modern communication techniques — interactive visualisation, animated playback, and AI-assisted interpretation — to a real-world environmental dataset. The source code is maintained at `github.com/[username]/air-quality-dashboard` and the dashboard launches with a single terminal command (see Section 4).
+This project develops an **interactive, map-centred dashboard** built on open data from the **EEA Air Quality e-Reporting (AQeR)** programme [@eea2024aqe], the pan-European monitoring network covering more than 40 countries and thousands of stations. It was developed for the ZHAW module *Communication and Collaboration in Environmental Science* (CCES FS26), applying modern communication techniques such as interactive visualisation, animated playback, and AI-assisted interpretation to a real-world environmental dataset. The source code is maintained at [https://github.com/klaveflo/Airquality_Dashboard](https://github.com/klaveflo/Airquality_Dashboard) and the dashboard launches with a single terminal command (see Section 4).
 
 The central question guiding the design is:
 
@@ -157,7 +164,7 @@ The central question guiding the design is:
 
 The dashboard answers this through two views: a **Historic tab** for long-term trend exploration with animated playback across more than a decade of daily measurements, and a **Live tab** for near-real-time monitoring of the most recent seven days at hourly resolution.
 
-**Extension topic — Animation.** The Historic tab implements a Play/Stop animation engine that steps through daily snapshots of the entire monitoring network, rendering colour-coded station dots on a WebGL map via deck.gl [@deckgl2024]. A key constraint was that the map must not reset its zoom or pan state between frames — solved by pushing data updates through deck.gl's `setProps()` API rather than re-mounting the map. The result is a fluid temporal narrative of how pollution evolves through seasons and years, offering insight no static snapshot can.
+**Extension topic: Animation.** The Historic tab implements a Play/Stop animation engine that steps through daily snapshots of the entire monitoring network, rendering colour-coded station dots on a WebGL map via deck.gl [@deckgl2024]. A key constraint was that the map must not reset its zoom or pan state between frames. This was solved by pushing data updates through deck.gl's `setProps()` API rather than re-mounting the map. The result is a fluid temporal narrative of how pollution evolves through seasons and years, offering insight no static snapshot can.
 
 \newpage
 
@@ -165,11 +172,11 @@ The dashboard answers this through two views: a **Historic tab** for long-term t
 
 Effective data visualisation is not only about technical accuracy but about guiding an audience toward understanding through deliberate narrative structure. The dashboard's design was shaped by three tensions in the data, each motivating a specific design decision.
 
-**Tension 1: Then versus now.** The split between Historic and Live tabs invites users to connect long-term trends with the present. A user can observe Poland's gradual PM10 improvement over the decade, then switch to the Live tab to see what Polish stations report today — a past-versus-present device emphasising that historical trends have a direct counterpart in the current world.
+**Tension 1: Then versus now.** The split between Historic and Live tabs invites users to connect long-term trends with the present. A user can observe Poland's gradual PM10 improvement over the decade, then switch to the Live tab to see what Polish stations report today. This past-versus-present device emphasises that historical trends have a direct counterpart in the current world.
 
-**Tension 2: East versus West.** Embedding the data on a real map makes the persistent disparity between Eastern and Western Europe immediately visible. Poland, Bulgaria, and Romania show systematically higher PM concentrations, reflecting continued reliance on coal and biomass for heating [@eu2016necd]. This inequality — which would take paragraphs to convey in prose — is grasped in seconds, carrying a message directly relevant to EU policy: despite continent-wide improvement, geographic equity in air quality remains unresolved.
+**Tension 2: East versus West.** Embedding the data on a real map makes the persistent disparity between Eastern and Western Europe immediately visible. Poland, Bulgaria, and Romania show systematically higher PM concentrations, reflecting continued reliance on coal and biomass for heating [@eu2016necd]. This inequality would take paragraphs to convey in prose, but it is grasped in seconds on the map. It carries a message directly relevant to EU policy: despite continent-wide improvement, geographic equity in air quality remains unresolved.
 
-**Tension 3: Urban versus rural.** Station dots are differentiated by area type — urban (solid circle), suburban (border ring), rural (hollow ring) — making the urban–rural gradient visible at every zoom level without filtering. Research consistently shows urban populations face higher pollutant exposures than rural ones [@who2021air]; the map makes this tangible at station level.
+**Tension 3: Urban versus rural.** Station dots are differentiated by area type. Urban stations use a solid circle, suburban stations use a border ring, and rural stations use a hollow ring. This makes the urban to rural gradient visible at every zoom level without filtering. Research consistently shows urban populations face higher pollutant exposures than rural ones [@who2021air]; the map makes this tangible at station level.
 
 The **intended audience** is environmental scientists, policy analysts, and informed members of the public interested in European air quality. The dashboard assumes no prior knowledge of the EEA network but expects basic familiarity with interactive maps and time series. A full exploration session should yield these insights:
 
@@ -178,35 +185,39 @@ The **intended audience** is environmental scientists, policy analysts, and info
 3. Significant country- and city-level disparities persist, with Eastern European stations consistently reporting higher values.
 4. Urban monitoring stations record markedly higher pollutant levels than rural stations in the same region.
 
-The **AI-powered peak explanation** feature bridges observed data patterns and real-world events. When a user notices a spike in the daily-average chart, the "Ask AI" button queries the Google Gemini API [@gemini2024] and returns a short explanation — for example, a Saharan dust intrusion or a temperature-inversion episode. This turns the dashboard from a passive display into an active explanatory environment without the user leaving the application.
+The **AI-powered peak explanation** feature bridges observed data patterns and real-world events. When a user notices a spike in the daily-average chart, the "Ask AI" button queries the Google Gemini API [@gemini2024] and returns a short explanation. Examples include a Saharan dust intrusion or a temperature-inversion episode. This turns the dashboard from a passive display into an active explanatory environment without the user leaving the application.
 
 \newpage
 
 # Key Dashboard Functionalities
 
-The dashboard is organised into two tabs, each targeting a distinct analytical question. The following overview describes the principal interactive features.
+The dashboard is organised into two tabs, each targeting a distinct analytical question.
 
 ## Historic Tab
 
-**Animated map playback.** A Play/Stop control steps through daily snapshots of all stations between the selected start and end dates. A five-position slider sets speed (0.1–1.2 s/frame) and the current date is displayed above the map. Zoom and pan state are preserved across frames via deck.gl's `setProps()` rather than a full remount — the core decision enabling smooth, exploratory animation.
+**Animated map playback.** A Play/Stop control steps through daily snapshots of all stations between the selected start and end dates. A five-position slider sets speed from 0.05 to 1.5 seconds per frame and the current date is displayed above the map, labelled *Animating* or *Viewing*. Zoom and pan state are preserved across frames via deck.gl's `setProps()` rather than a full remount. This is the core decision enabling smooth, exploratory animation.
 
-**EAQI colour coding.** Each dot is coloured by the official six-tier European Air Quality Index [@eea2023eaqi] using a colourblind-friendly blue→yellow→red palette. Missing values render as transparent dots rather than omitted, preserving the network structure and making data gaps explicit.
+**EAQI colour coding.** Each dot is coloured by the official six-tier European Air Quality Index [@eea2023eaqi] using a colourblind-friendly blue to yellow to red palette. Missing values render as transparent dots rather than omitted, preserving the network structure and making data gaps explicit.
 
-**Area-type differentiation.** Urban, suburban, and rural stations are rendered with distinct visual encodings (solid, border-ring, and hollow circles respectively), making the urban–rural gradient legible at any zoom level without requiring explicit filtering.
+**Area-type differentiation.** Urban, suburban, and rural stations are rendered with distinct visual encodings (solid, border-ring, and hollow circles respectively), making the urban to rural gradient legible at any zoom level without requiring explicit filtering.
 
-**Country filter with automatic zoom.** A dropdown covering all 29 represented countries restricts the map, charts, and statistics to that country's stations and smoothly zooms to its bounding box, with all charts updating in the same reactive graph.
+**Country filter with automatic zoom.** A dropdown listing every country present in the historic database restricts the map, charts, and statistics to that country's stations and smoothly flies the map to its bounding box, with all charts updating in the same reactive graph.
 
-**Daily average time series with interactive date selection.** An Altair chart shows the network-wide (or country-filtered) daily mean. Clicking any point jumps the map to that date, enabling seamless navigation between chart and map without breaking the animation state.
+**Daily average time series with interactive date selection.** An Altair chart [@altair2024] shows the network wide (or country filtered) daily mean against shaded EAQI background bands. Clicking any point or using the date picker jumps the map to that date, enabling seamless navigation between chart and map without breaking the animation state.
 
-**Year-over-Year comparison chart.** Up to five representative years are selected automatically and overlaid on a shared January–December axis, making seasonal structure and inter-annual change directly comparable at a glance.
+**Year over Year comparison chart.** Up to five representative years are selected automatically and overlaid on a shared January to December axis, making seasonal structure and interannual change directly comparable at a glance.
 
-**AI-powered peak explanation.** A dedicated button sends the currently displayed date and pollutant to the Google Gemini API and displays a brief contextual explanation of likely causal events, supporting interpretation beyond what the data alone can show.
+**Jump to Peak.** A dedicated button locates the highest daily average in the selected range and snaps the slider, map, and charts to that date. This provides a fast way to find the episode worth explaining with the AI feature, alongside a live period-statistics panel (today's mean, period mean, period peak).
+
+**AI-powered peak explanation.** An "Ask AI" button sends the currently displayed date, pollutant, and country to a small LLM helper module that returns a brief contextual explanation of likely causal events, supporting interpretation beyond what the data alone can show.
 
 ## Live Tab
 
-**Seven-day live station map.** EEA Parquet files for the most recent seven days are downloaded concurrently using a 20-thread pool executor, parsed, and rendered as a colour-coded station map, fetched per country–pollutant combination on demand.
+**Seven-day live station map.** EEA Parquet files for the most recent seven days are downloaded concurrently using a 20-thread pool executor, parsed, and rendered as a colour-coded station map, fetched per country and pollutant combination on demand via a Load/Refresh control.
 
-**Station comparison panel.** Clicking two stations opens a side-by-side hourly comparison. EAQI quality bands are rendered as translucent background rectangles, and a stacked bar chart summarises the proportion of hours in each category over the seven days.
+**Hourly playback and time scrubber.** The same non-blocking animation engine as the Historic tab steps through the hourly snapshots of the seven-day window, with a time slider for manual scrubbing and a per-frame counter shown above the map.
+
+**Station comparison panel.** Clicking two stations (or picking them from a dropdown) opens a side-by-side hourly comparison. EAQI quality bands are rendered as translucent background rectangles, a normalised bar chart summarises the share of hours in each quality category, and per-station summary cards report the dominant category plus best and worst hours of the week.
 
 **Pollutant selector.** Users can switch between PM10, PM2.5, NO2, and O3. All colours, thresholds, and data queries update dynamically, using pollutant-specific EAQI breakpoints throughout.
 
@@ -214,7 +225,7 @@ The dashboard is organised into two tabs, each targeting a distinct analytical q
 
 # Setup and Configuration
 
-This document contains the complete annotated source code for the dashboard, split across four Python modules (`app.py`, `hist_tab.py`, `live_tab.py`, and a shared utilities module). The full codebase is at the repository URL on the title page. Run from the project root with:
+This report is the technical write-up of the project. It intentionally contains **selected, annotated code excerpts** only, so that the report explains the main implementation decisions without duplicating the full repository. The complete, runnable dashboard code is available in the public Git repository linked on the title page and is launched from there rather than executed inside this document. The codebase uses Shiny for Python [@shiny2024] and is split across five Python modules: `app.py` (entry point and shared styling), `shared.py` (constants, EAQI helpers, data fetching, and DuckDB queries), `hist_tab.py` and `live_tab.py` (the two tab UIs and server logic), and `query_llm.py` (the LLM helper for the peak-explanation feature). Run the dashboard from the project root with:
 
 ```bash
 shiny run --reload app.py
@@ -224,87 +235,55 @@ shiny run --reload app.py
 
 The following Python packages are required. Run this block once if not already installed.
 
-```{python install-packages}
-#| label: install-packages
-#| eval: false
-
-import subprocess, sys
-
-packages = [
-    "shiny", "shinywidgets", "duckdb", "pandas",
-    "altair", "requests", "pyarrow", "google-genai", "python-dotenv",
-]
-for pkg in packages:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", pkg])
-```
+The required Python packages are `shiny`, `shinywidgets`, `duckdb`, `pandas`, `altair`, `requests`, `pyarrow`, `google-genai`, and `python-dotenv`. Installation instructions and the complete environment setup are provided in the Git repository.
 
 ## Load Libraries and Define Global Configuration
 
 ```{python setup}
 #| label: setup
 
-import os, io, gzip
 from functools import lru_cache
 from datetime import datetime, timedelta, timezone
-import datetime as _dt
 from concurrent.futures import ThreadPoolExecutor
 
-import requests
 import pandas as pd
 import altair as alt
 import duckdb
+import requests
+from shiny import App, ui, reactive
 
-from shiny import App, ui, render, reactive, req
-from shinywidgets import output_widget, render_altair
-
-# ── API endpoints ──────────────────────────────────────────────────────────────
-EEA_API_URL = (
-    "https://eeadmz1-downloads-api-appservice.azurewebsites.net/ParquetFile/urls"
-)
-
-# ── Pollutants ─────────────────────────────────────────────────────────────────
+EEA_API_URL = "https://eeadmz1-downloads-api-appservice.azurewebsites.net/ParquetFile/urls"
 POLLUTANTS = ["PM10", "PM2.5", "NO2", "O3"]
-
-# ── Historic database ──────────────────────────────────────────────────────────
 DB_PATH = "eeaopt.db"
 HIST_TABLES = {"PM10": "airquality_5", "PM2.5": "airquality_6001"}
-
-print("Setup complete.")
 ```
 
 ## European Air Quality Index (EAQI) Configuration
 
-The dashboard uses the official six-tier **European Air Quality Index** [@eea2023eaqi] as the colour scheme throughout both tabs. The palette follows a diverging blue–yellow–red progression that is both perceptually ordered and broadly colourblind-safe.
+The dashboard uses the official six-tier **European Air Quality Index** [@eea2023eaqi] as the colour scheme throughout both tabs. The palette follows a diverging blue to yellow to red progression that is both perceptually ordered and broadly colourblind-safe.
 
 ```{python eaqi-config}
 #| label: eaqi-config
 
 EAQI_THRESHOLDS = {
-    "PM2.5": [(5,"Good","#4477AA"),(15,"Fair","#77AADD"),(50,"Moderate","#DDCC77"),
-              (90,"Poor","#EE7733"),(140,"Very poor","#CC3311"),
-              (float("inf"),"Extremely poor","#882255")],
-    "PM10":  [(15,"Good","#4477AA"),(45,"Fair","#77AADD"),(120,"Moderate","#DDCC77"),
-              (195,"Poor","#EE7733"),(270,"Very poor","#CC3311"),
-              (float("inf"),"Extremely poor","#882255")],
-    "NO2":   [(10,"Good","#4477AA"),(25,"Fair","#77AADD"),(60,"Moderate","#DDCC77"),
-              (100,"Poor","#EE7733"),(150,"Very poor","#CC3311"),
-              (float("inf"),"Extremely poor","#882255")],
-    "O3":    [(60,"Good","#4477AA"),(100,"Fair","#77AADD"),(120,"Moderate","#DDCC77"),
-              (160,"Poor","#EE7733"),(180,"Very poor","#CC3311"),
-              (float("inf"),"Extremely poor","#882255")],
+    "PM2.5": [(5, "Good"), (15, "Fair"), (50, "Moderate"),
+              (90, "Poor"), (140, "Very poor"), (float("inf"), "Extremely poor")],
+    "PM10":  [(15, "Good"), (45, "Fair"), (120, "Moderate"),
+              (195, "Poor"), (270, "Very poor"), (float("inf"), "Extremely poor")],
 }
-EAQI_LABELS  = ["Good","Fair","Moderate","Poor","Very poor","Extremely poor"]
-EAQI_COLOURS = {"Good":"#4477AA","Fair":"#77AADD","Moderate":"#DDCC77",
-                "Poor":"#EE7733","Very poor":"#CC3311","Extremely poor":"#882255"}
+
+EAQI_COLOURS = {
+    "Good": "#4477AA", "Fair": "#77AADD", "Moderate": "#DDCC77",
+    "Poor": "#EE7733", "Very poor": "#CC3311", "Extremely poor": "#882255",
+}
 
 def get_aqi_label(value, pollutant):
     """Return the EAQI category label for a µg/m³ value."""
     if pd.isna(value) or value < 0:
         return None
-    for upper, label, _ in EAQI_THRESHOLDS.get(pollutant, EAQI_THRESHOLDS["PM10"]):
+    for upper, label in EAQI_THRESHOLDS[pollutant]:
         if value <= upper:
             return label
-    return "Very poor"
 ```
 
 \newpage
@@ -313,14 +292,11 @@ def get_aqi_label(value, pollutant):
 
 ## Historic Database (DuckDB)
 
-The historic data is stored in a local **DuckDB** database [@duckdb2024], an in-process analytical database optimised for column-oriented queries — well suited for aggregating millions of measurements without a separate server process. Populated from EEA AQeR bulk downloads, it contains two tables:
-
-- `airquality_5` — PM10 daily measurements, 29 European countries, 2013–2024
-- `airquality_6001` — PM2.5 daily measurements, 29 European countries, 2013–2024
+The historic data is stored in a local **DuckDB** database [@duckdb2024], an in-process analytical database optimised for column-oriented queries. This makes it well suited for aggregating millions of measurements without a separate server process. Populated from EEA AQeR bulk downloads, it contains two tables. The table `airquality_5` contains PM10 daily measurements for 29 European countries from 2013 to 2024. The table `airquality_6001` contains PM2.5 daily measurements for 29 European countries from 2013 to 2024.
 
 Each row holds `Date`, `Value` (µg/m³), `Country` (ISO 3166-1 alpha-2), `Latitude`, and `Longitude`. The combined dataset spans over 40 million records, making columnar storage and query caching essential for interactive response times.
 
-All historic queries are wrapped with Python's `@lru_cache` using the date string and table name as keys, so replaying an animation frame or revisiting a date needs no extra database I/O — detailed further in the Historic Tab section.
+All historic queries are wrapped with Python's `@lru_cache` using the date string and table name as keys, so replaying an animation frame or revisiting a date needs no extra database I/O. This is detailed further in the Historic Tab section.
 
 ```{python db-connection}
 #| label: db-connection
@@ -337,47 +313,33 @@ def get_db():
 
 ### Inspecting the Database Schema
 
-```{python db-schema}
-#| label: db-schema
+```{sql db-schema}
+-- Representative validation queries used during development
+DESCRIBE airquality_5;
 
-conn = get_db()
-
-schema = conn.execute("DESCRIBE airquality_5").fetch_df()
-print(schema.to_string(index=False))
-
-summary = conn.execute("""
-    SELECT COUNT(*) AS n_rows,
-           MIN(DATE("Date")) AS first_date,
-           MAX(DATE("Date")) AS last_date,
-           COUNT(DISTINCT "Country") AS n_countries
-    FROM airquality_5
-    WHERE "Value" IS NOT NULL
-""").fetch_df()
-print(summary)
+SELECT COUNT(*) AS n_rows,
+       MIN(DATE("Date")) AS first_date,
+       MAX(DATE("Date")) AS last_date,
+       COUNT(DISTINCT "Country") AS n_countries
+FROM airquality_5
+WHERE "Value" IS NOT NULL;
 ```
 
 ### Station Metadata
 
-A supplementary CSV (`station_metadata_clean.csv`) links sampling-point IDs to names, coordinates, and **area type** (urban, suburban, rural) — the basis for the three-symbol map differentiation, prepared in `metadata_prep.ipynb` and following the EEA classification vocabulary. About 5% of live station IDs could not be matched; these are excluded from the map but retained in time-series charts where coordinates are not required.
+A supplementary CSV (`station_metadata_clean.csv`) links sampling-point IDs to names, coordinates, and **area type** for urban, suburban, and rural stations. This is the basis for the three-symbol map differentiation, prepared in `metadata_prep.ipynb` and following the EEA classification vocabulary [@eea2024metadata]. About 5% of live station IDs could not be matched; these are excluded from the map but retained in time-series charts where coordinates are not required.
 
 ```{python station-metadata}
 #| label: station-metadata
 
 @lru_cache(maxsize=1)
 def get_station_coords():
-    """Load and cache station metadata. Falls back to EEA API if CSV absent."""
-    try:
-        df = pd.read_csv("station_metadata_clean.csv", low_memory=False)
-        # Normalise column names (strip BOM, lowercase, replace separators)
-        df.columns = (df.columns.astype(str)
-                      .str.replace("\ufeff", "", regex=False).str.strip()
-                      .str.lower()
-                      .str.replace(r"[\s\-\.\/]+", "_", regex=True))
-        print(f"Loaded {len(df)} station records.")
-        return df
-    except FileNotFoundError:
-        print("CSV not found — fetching from EEA API …")
-        return pd.DataFrame(columns=["key","lat","lon","station_name","area_type"])
+    """Load station coordinates and area type once, then reuse them."""
+    df = pd.read_csv("station_metadata_clean.csv", low_memory=False)
+    df.columns = (df.columns.astype(str)
+                  .str.replace("\ufeff", "", regex=False).str.strip()
+                  .str.lower().str.replace(r"[\s\-\.\/]+", "_", regex=True))
+    return df[["key", "lat", "lon", "station_name", "area_type"]]
 ```
 
 ## Live Data (EEA Parquet API)
@@ -387,74 +349,21 @@ The Live tab fetches the most recent seven days of hourly measurements from the 
 ```{python live-fetch}
 #| label: live-fetch
 
-def get_station_urls(country_code, pollutant):
-    """Fetch Parquet file URLs for a given country and pollutant."""
-    end_dt   = datetime.now(timezone.utc)
-    start_dt = end_dt - timedelta(days=7)
-    payload  = {
-        "countries": [country_code], "cities": [], "pollutants": [pollutant],
-        "dataset": 1,
-        "dateTimeStart": start_dt.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-        "dateTimeEnd":   end_dt.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-        "compress": False,
-    }
-    resp = requests.post(EEA_API_URL, json=payload)
-    resp.raise_for_status()
-    return [l.strip() for l in resp.text.strip().split("\n")
-            if l.strip() and "ParquetFileUrl" not in l]
-
-
 @lru_cache(maxsize=64)
 def get_all_station_data_cached(country_code, pollutant):
-    """Fetch and cache all station data for a country/pollutant pair."""
-    urls   = get_station_urls(country_code, pollutant)
+    """Fetch, clean, cache, and geo-reference seven days of live station data."""
+    urls = get_station_urls(country_code, pollutant)
     coords = get_station_coords()
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).replace(tzinfo=None)
-
-    def fetch_one(url):
-        try:
-            df = pd.read_parquet(url)
-            if df.empty: return None
-            # Parse nanosecond integer or ISO-string timestamps
-            if pd.api.types.is_numeric_dtype(df["Start"]):
-                df["Start"] = pd.to_datetime(df["Start"], unit="ns", errors="coerce")
-            else:
-                df["Start"] = pd.to_datetime(df["Start"], errors="coerce")
-            df["Start"] = df["Start"].dt.tz_localize(None)
-            df["Value"] = pd.to_numeric(df["Value"], errors="coerce")
-            df = df[df["Value"] >= 0].dropna(subset=["Start","Value"])
-            df = df[df["Start"] >= cutoff].reset_index(drop=True)
-            if df.empty: return None
-            raw_id     = str(df["Samplingpoint"].iloc[0]) if "Samplingpoint" in df.columns else url
-            station_id = raw_id.split("/")[-1] if "/" in raw_id else raw_id
-            ts = df[["Start","Value"]].copy()
-            ts["station_id"] = station_id
-            return {"meta": {"station_id": station_id, "Value": float(df["Value"].mean())},
-                    "ts": ts}
-        except Exception:
-            return None
 
     with ThreadPoolExecutor(max_workers=20) as ex:
-        results = [r for r in ex.map(fetch_one, urls) if r is not None]
-    if not results:
-        return pd.DataFrame(), pd.DataFrame()
+        station_frames = [df for df in ex.map(fetch_one_station_file, urls) if df is not None]
 
-    df_meta = pd.DataFrame([r["meta"] for r in results])
-    df_all  = pd.concat([r["ts"] for r in results], ignore_index=True)
-    # Merge coordinates and area type from metadata CSV
-    if not coords.empty:
-        df_meta["key"] = df_meta["station_id"].str.strip().str.lower()
-        df_meta = df_meta.merge(
-            coords[["key","lat","lon","station_name","area_type"]],
-            on="key", how="left").drop(columns=["key"])
-    df_meta["station_name"] = df_meta.get("station_name",
-                              df_meta["station_id"]).fillna(df_meta["station_id"])
-    if "area_type" not in df_meta.columns:
-        df_meta["area_type"] = "unknown"
-    df_meta["area_type"] = df_meta["area_type"].fillna("unknown")
-    name_map = df_meta.set_index("station_id")["station_name"].to_dict()
-    df_all["station_name"] = df_all["station_id"].map(name_map).fillna(
-        df_all["station_id"])
+    df_all = pd.concat(station_frames, ignore_index=True)
+    df_all = df_all[df_all["Value"] >= 0].dropna(subset=["Start", "Value"])
+
+    # Coordinates and area type are needed for the map, while the full time series
+    # is kept for charts and station comparisons.
+    df_meta = summarise_stations(df_all).merge(coords, on="key", how="left")
     return df_meta, df_all
 ```
 
@@ -483,114 +392,42 @@ All historic queries run against the local DuckDB database around two principles
 ```{python hist-queries}
 #| label: hist-queries
 
-@lru_cache(maxsize=4)
-def hist_get_all_stations(table_name):
-    """
-    Load ALL stations for a pollutant table once.
-    Avoids repeated DISTINCT scans on every country change.
-    Country filtering is done in Python after this single DB call.
-    """
-    conn = get_db()
-    return conn.execute(f"""
-        SELECT DISTINCT "Latitude" AS lat, "Longitude" AS lon, "Country"
-        FROM {table_name}
-        WHERE "Latitude" IS NOT NULL AND "Longitude" IS NOT NULL
-    """).fetch_df()
-
-
-def hist_get_master_stations(table_name, start, end, country="ALL"):
-    df = hist_get_all_stations(table_name)
-    if country != "ALL":
-        df = df[df["Country"] == country]
-    return df[["lat","lon"]].reset_index(drop=True)
-
-
-@lru_cache(maxsize=512)
+@lru_cache(maxsize=64)
 def hist_get_map_data_cached(date_str, table_name):
-    """Fetch all station values for a single date (cached per date)."""
+    """Return one cached daily mean value per station coordinate."""
     conn = get_db()
     return conn.execute(f"""
-        SELECT "Value", "Latitude" AS lat, "Longitude" AS lon, "Country"
+        SELECT "Latitude" AS lat, "Longitude" AS lon, AVG("Value") AS "Value"
         FROM {table_name}
         WHERE DATE("Date") = '{date_str}'
+          AND "Value" IS NOT NULL
           AND "Latitude" IS NOT NULL AND "Longitude" IS NOT NULL
+        GROUP BY "Latitude", "Longitude"
     """).fetch_df()
 
-
-def hist_get_map_data(date_str, table_name, master_df=None, country="ALL"):
-    """Retrieve and EAQI-colour-code station values for a specific date."""
-    df = hist_get_map_data_cached(date_str, table_name)
-    if country != "ALL":
-        df = df[df["Country"] == country]
-    if master_df is not None and not master_df.empty:
-        df = df.drop_duplicates(subset=["lat","lon"])
-        df = pd.merge(master_df, df, on=["lat","lon"], how="left")
-    pollutant = "PM2.5" if "6001" in table_name else "PM10"
-    if not df.empty and "Value" in df.columns:
-        thresholds = EAQI_THRESHOLDS.get(pollutant)
-        def _color(v):
-            if pd.isna(v) or v <= 0: return (128, 128, 128, 0)
-            for upper, _, hx in thresholds:
-                if v <= upper:
-                    return (int(hx[1:3],16), int(hx[3:5],16),
-                            int(hx[5:7],16), 210)
-            return (136, 34, 85, 210)
-        cols = df["Value"].apply(_color)
-        df["color_r"]   = cols.apply(lambda c: c[0]).astype(int)
-        df["color_g"]   = cols.apply(lambda c: c[1]).astype(int)
-        df["color_b"]   = cols.apply(lambda c: c[2]).astype(int)
-        df["color_a"]   = cols.apply(lambda c: c[3]).astype(int)
-        df["value_str"] = df["Value"].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "N/A")
-        df["aqi_label"] = df["Value"].apply(lambda v: get_aqi_label(v, pollutant) or "No data")
-    return df
-
-
-@lru_cache(maxsize=32)
-def hist_get_daily_averages(table_name, start, end):
-    """Daily mean value across all stations for the time-series chart."""
-    conn = get_db()
-    df = conn.execute(f"""
+@lru_cache(maxsize=64)
+def hist_get_daily_averages(table_name, start, end, country="ALL"):
+    """Return daily averages for the selected period and optional country filter."""
+    country_clause = f'AND "Country" = '{country}'' if country != "ALL" else ""
+    return get_db().execute(f"""
         SELECT DATE("Date") AS "Date", AVG("Value") AS AvgValue
         FROM {table_name}
         WHERE "Value" IS NOT NULL
           AND DATE("Date") BETWEEN '{start}' AND '{end}'
+          {country_clause}
         GROUP BY DATE("Date") ORDER BY "Date"
     """).fetch_df()
-    df["Date"] = pd.to_datetime(df["Date"])
-    return df
-
-
-@lru_cache(maxsize=16)
-def hist_get_yoy_data(table_name, start, end):
-    """
-    Monthly averages per calendar year for the Year-over-Year chart.
-    Years are pinned to 2000 so Altair overlays them on a shared
-    January-December x-axis.
-    """
-    conn = get_db()
-    df = conn.execute(f"""
-        SELECT YEAR("Date") AS Year, MONTH("Date") AS Month,
-               AVG("Value") AS AvgValue
-        FROM {table_name}
-        WHERE "Value" IS NOT NULL
-          AND DATE("Date") BETWEEN '{start}' AND '{end}'
-        GROUP BY Year, Month ORDER BY Year, Month
-    """).fetch_df()
-    df["YearStr"]   = df["Year"].astype(str)
-    df["MonthDate"] = pd.to_datetime(
-        "2000-" + df["Month"].astype(str).str.zfill(2) + "-15")
-    return df
 ```
 
 ## Animation Engine
 
-The animation engine is the centrepiece of the extension topic. The key decision is to use `reactive.invalidate_later()` rather than a blocking `while` loop, keeping Shiny's event loop responsive so the user can change speed, stop, or interact with any UI element during playback. Each call to `_hist_advance()` schedules its own next execution — a non-blocking timer firing once per frame at the chosen interval.
+The animation engine is the centrepiece of the extension topic. The key decision is to use `reactive.invalidate_later()` rather than a blocking `while` loop, keeping Shiny's event loop responsive so the user can change speed, stop, or interact with any UI element during playback. Each call to `_hist_advance()` schedules its own next execution. This creates a non-blocking timer firing once per frame at the chosen interval.
 
 ```{python hist-animation}
 #| label: hist-animation
 
-# Speed mapping: slider position 1–5 → seconds per frame
-_SPEED_MAP = {1: 1.2, 2: 0.8, 3: 0.5, 4: 0.25, 5: 0.1}
+# Speed mapping: slider position 1 to 5 controls seconds per frame
+_SPEED_MAP = {1: 1.5, 2: 0.8, 3: 0.4, 4: 0.15, 5: 0.05}
 
 # Excerpt from hist_server() in hist_tab.py:
 def hist_server_animation_excerpt(input, output, session):
@@ -616,7 +453,7 @@ def hist_server_animation_excerpt(input, output, session):
         speed = _SPEED_MAP.get(input.hist_speed(), 0.5)
         reactive.invalidate_later(speed)          # re-fires after `speed` seconds
         with reactive.isolate():
-            cur = hist_anim_date() or input.hist_date()
+            cur = hist_anim_date() if hist_anim_date() is not None else input.hist_date()
         nxt = cur + _dt.timedelta(days=1)
         if nxt > input.hist_end():
             hist_playing.set(False)
@@ -626,34 +463,25 @@ def hist_server_animation_excerpt(input, output, session):
 
 ## Map Rendering: deck.gl + MapLibre GL
 
-The map is a static `<div id="deck-hist-map">` mounted once at page load. **deck.gl** [@deckgl2024] renders three `ScatterplotLayer` instances — urban, suburban, rural — on a **MapLibre GL** [@maplibre2024] base map. Updates arrive via Shiny's WebSocket channel and are applied with `setProps()`, so no re-mount occurs across frames or country changes and zoom/pan state is fully preserved.
+The map is a static `<div id="deck-hist-map">` mounted once at page load. **deck.gl** [@deckgl2024] renders three `ScatterplotLayer` instances for urban, suburban, and rural stations on a **MapLibre GL** [@maplibre2024] base map. Updates arrive via Shiny's WebSocket channel and are applied with `setProps()`, so no re-mount occurs across frames or country changes and zoom/pan state is fully preserved.
 
 ```{python map-payload}
 #| label: map-payload
 
-_HIST_JS_COLS = ["lon","lat","color_r","color_g","color_b","color_a",
-                 "value_str","station_name","aqi_label","area_type"]
-
 def build_hist_map_payload(df):
-    """Split styled DataFrame into urban/suburban/rural for deck.gl."""
-    payload = {"urban":[],"suburban":[],"rural":[],"stamp":0}
-    if df.empty: return payload
-    if "area_type" in df.columns:
-        norm     = df["area_type"].str.lower().fillna("unknown")
-        urban    = df[norm.isin(["urban","unknown"])]
-        suburban = df[norm == "suburban"]
-        rural    = df[norm.isin(["rural","rural-nearcity","rural_nearcity"])]
-    else:
-        urban, suburban, rural = df, df.iloc[0:0], df.iloc[0:0]
-    def to_records(sub):
-        if sub.empty: return []
-        cols = [c for c in _HIST_JS_COLS if c in sub.columns]
-        return sub[cols].where(sub[cols].notna(), None).to_dict("records")
-    payload["urban"]    = to_records(urban)
-    payload["suburban"] = to_records(suburban)
-    payload["rural"]    = to_records(rural)
-    payload["stamp"]    = datetime.utcnow().timestamp()
-    return payload
+    """Prepare separate layer payloads for urban, suburban, and rural stations."""
+    norm = df["area_type"].str.lower().fillna("unknown")
+    groups = {
+        "urban": df[norm.isin(["urban", "unknown"])],
+        "suburban": df[norm == "suburban"],
+        "rural": df[norm.isin(["rural", "rural-nearcity", "rural_nearcity"])],
+    }
+    return {
+        key: value[["lon", "lat", "color_r", "color_g", "color_b", "color_a",
+                    "value_str", "station_name", "aqi_label", "area_type"]]
+                   .where(value.notna(), None).to_dict("records")
+        for key, value in groups.items()
+    }
 ```
 
 ## Chart Builders
@@ -662,93 +490,44 @@ def build_hist_map_payload(df):
 #| label: hist-charts
 
 def build_hist_avg_chart(df_avg, current_date):
-    """
-    Daily-average time-series chart.
-    The red dot is driven by a Vega parameter updated via a lightweight
-    signal message — no chart re-embed on every animation frame,
-    so zoom and pan state are preserved.
-    A click-selection layer lets users jump to any date by clicking.
-    """
-    if df_avg.empty:
-        return (alt.Chart(pd.DataFrame({"Date":[],"AvgValue":[]}))
-                .mark_line().properties(height=300).to_dict())
+    """Build the clickable daily-average chart and highlight the animated date."""
     df = df_avg.copy()
-    df["DateStr"]  = df["Date"].dt.strftime("%Y-%m-%d")
-    date_param     = alt.param(name="histCurDate", value=str(current_date))
-    click_sel      = alt.selection_point(
-        name="date_click", on="click", nearest=True, fields=["DateStr"])
-    click_target   = (alt.Chart(df).mark_point(opacity=0.001, size=300)
-                      .encode(x="Date:T", y="AvgValue:Q")
-                      .add_params(click_sel))
-    base = (alt.Chart(df).mark_line(color="gray", strokeWidth=2)
-            .encode(x=alt.X("Date:T", title="Date"),
-                    y=alt.Y("AvgValue:Q", title="Daily Average (µg/m³)"))
-            .properties(height=300, title="Daily Average Values Over Time")
-            .interactive())
-    dot = (alt.Chart(df).mark_circle(color="red", size=100, opacity=1)
-           .encode(x="Date:T", y="AvgValue:Q")
-           .transform_filter("datum.DateStr === histCurDate"))
-    spec = (alt.layer(base, dot, click_target)
-            .add_params(date_param).resolve_scale(y="shared")
-            .properties(width="container").to_dict())
-    spec["autosize"] = {"type":"fit-x","contains":"padding"}
-    return spec
+    df["DateStr"] = df["Date"].dt.strftime("%Y-%m-%d")
+    date_param = alt.param(name="histCurDate", value=str(current_date))
+    click_sel = alt.selection_point(name="date_click", on="click", nearest=True,
+                                    fields=["DateStr"])
 
+    line = alt.Chart(df).mark_line().encode(x="Date:T", y="AvgValue:Q")
+    active_dot = (alt.Chart(df).mark_circle(size=100)
+                  .encode(x="Date:T", y="AvgValue:Q")
+                  .transform_filter("datum.DateStr === histCurDate"))
+    click_layer = (alt.Chart(df).mark_point(opacity=0.001, size=300)
+                   .encode(x="Date:T", y="AvgValue:Q").add_params(click_sel))
 
-def build_yoy_chart(df_yoy, pollutant):
-    """
-    Year-over-Year seasonal comparison chart.
-    Up to five representative years are selected and overlaid on a
-    shared January-December x-axis.
-    """
-    if df_yoy.empty:
-        return alt.Chart(pd.DataFrame()).mark_line().properties(height=300)
-    years = sorted(df_yoy["Year"].unique())
-    if len(years) > 5:
-        step  = max(1, len(years) // 4)
-        picked = years[::step]
-        if years[-1] not in picked:
-            picked = list(picked) + [years[-1]]
-        df_yoy = df_yoy[df_yoy["Year"].isin(picked)]
-    return (
-        alt.Chart(df_yoy).mark_line(point=True, strokeWidth=2)
-        .encode(
-            x=alt.X("MonthDate:T", title="Month",
-                    axis=alt.Axis(format="%b", tickCount="month", labelAngle=0)),
-            y=alt.Y("AvgValue:Q", title=f"{pollutant} Monthly Avg (µg/m³)"),
-            color=alt.Color("YearStr:N", title="Year"),
-            tooltip=[alt.Tooltip("YearStr:N", title="Year"),
-                     alt.Tooltip("MonthDate:T", format="%B", title="Month"),
-                     alt.Tooltip("AvgValue:Q", format=".1f", title="µg/m³")],
-        )
-        .properties(height=300, title="Year-over-Year Comparison (monthly averages)")
-        .interactive().properties(width="container")
-    )
+    return alt.layer(line, active_dot, click_layer).add_params(date_param)
 ```
-
-\newpage
-
-# Live Tab
 
 ## AI-Powered Peak Explanation
 
-The Historic tab's "Ask AI" feature sends the selected date and pollutant to the **Google Gemini API** [@gemini2024]. The model (`gemini-2.5-flash`) returns a 1–2 sentence explanation of the likely cause of an observed peak. Its scope is deliberately narrow — environmental context (meteorological events, dust transport, seasonal heating onset) rather than general air-quality information — keeping responses concise and actionable.
+The Historic tab's "Ask AI" button calls `ask_llm_about_peak()` in the dedicated `query_llm.py` module, passing the currently selected date, pollutant, and country. The model (`gemini-2.5-flash`, via the **Google Gemini API** [@gemini2024]) returns a one to two sentence explanation of the likely cause of an observed peak. Its scope is deliberately narrow. It focuses on environmental context rather than general air-quality information, keeping responses concise and actionable.
 
 ```{python ai-query}
 #| label: ai-query
 
+# query_llm.py
 from google import genai
 
-def ask_llm_about_peak(date_str, metric):
+def ask_llm_about_peak(date_str, pollutant, country="ALL"):
     """Query Google Gemini for a contextual peak explanation."""
     if not os.environ.get("GEMINI_API_KEY"):
         return "Error: GEMINI_API_KEY not set."
     try:
-        client   = genai.Client()
-        prompt   = (
+        client = genai.Client()
+        region = "Europe" if country == "ALL" else country
+        prompt = (
             f"Explain briefly in only 1-2 sentences what event could cause "
-            f"there to be an air quality ({metric}) peak on {date_str} "
-            f"in Europe. Keep your response short and concise."
+            f"an air quality ({pollutant}) peak on {date_str} in {region}. "
+            f"Keep your response short and concise."
         )
         response = client.models.generate_content(
             model="gemini-2.5-flash", contents=prompt)
@@ -757,51 +536,36 @@ def ask_llm_about_peak(date_str, metric):
         return f"Error communicating with Gemini API: {e}"
 ```
 
+\newpage
+
+# Live Tab
+
 ## Live Station Comparison
 
-Clicking two stations on the live map opens a comparison panel: an hourly time series overlaid with EAQI band backgrounds and a stacked bar chart showing the proportion of hours in each quality category over the seven days. The bands are built programmatically from pollutant-specific thresholds, so the chart is correct for all four pollutants without hard-coded values.
+Clicking two stations on the live map opens a comparison panel: an hourly time series overlaid with EAQI band backgrounds, a normalised bar chart showing the share of hours in each quality category over the seven days, and per-station summary cards (dominant category, best and worst hour). The bands are built programmatically from pollutant-specific thresholds, so the chart is correct for all four pollutants without hard-coded values.
 
 ```{python live-comparison}
 #| label: live-comparison
 
 def build_comparison_chart(df_sel, pollutant):
-    """Hourly time series with coloured EAQI band backgrounds."""
-    thresholds = EAQI_THRESHOLDS.get(pollutant, EAQI_THRESHOLDS["PM10"])
-    y_max = max(float(df_sel["Value"].max()) * 1.15, thresholds[1][0] + 1)
-    band_data, prev = [], 0
-    for upper, label, colour in thresholds:
-        y2 = min(upper, y_max) if upper != float("inf") else y_max
-        if prev >= y_max: break
-        band_data.append({"y1":float(prev),"y2":float(y2),
-                          "label":label,"colour":colour})
-        prev = upper if upper != float("inf") else y_max
-    aqi_scale = alt.Scale(domain=[r["label"] for r in band_data],
-                          range=[r["colour"] for r in band_data])
-    bands = (alt.Chart(pd.DataFrame(band_data)).mark_rect(opacity=0.15)
-             .encode(y=alt.Y("y1:Q", scale=alt.Scale(domain=[0, y_max])),
-                     y2="y2:Q",
-                     color=alt.Color("label:N", scale=aqi_scale, legend=None)))
-    line = (alt.Chart(df_sel).mark_line(point=alt.OverlayMarkDef(size=30))
-            .encode(x=alt.X("Start:T", title="Date & Time"),
-                    y=alt.Y("Value:Q", title=f"{pollutant} (µg/m³)",
-                            scale=alt.Scale(domain=[0, y_max])),
-                    color=alt.Color("station_name:N", title="Station"),
-                    tooltip=[alt.Tooltip("Start:T", format="%d %b, %H:%M"),
-                             alt.Tooltip("Value:Q", format=".2f", title="µg/m³"),
-                             alt.Tooltip("station_name:N", title="Station")])
-            .properties(height=300, title="Hourly Readings with AQI Zones")
-            .interactive())
-    return alt.layer(bands, line).resolve_scale(color="independent")
+    """Compare two stations against pollutant-specific EAQI background bands."""
+    bands = build_eaqi_band_layer(pollutant, df_sel["Value"].max())
+    lines = (alt.Chart(df_sel).mark_line(point=True)
+             .encode(x="Start:T",
+                     y=alt.Y("Value:Q", title=f"{pollutant} (µg/m³)"),
+                     color=alt.Color("station_name:N", title="Station"),
+                     tooltip=["Start:T", "Value:Q", "station_name:N"]))
+    return alt.layer(bands, lines).resolve_scale(color="independent")
 ```
 
 ## Application Entry Point
 
-The four modules are assembled in `app.py`, which defines the top-level UI and server and passes them to Shiny's `App` constructor. Shared CSS supports dark and light mode via `@media (prefers-color-scheme: light)`, and CDN-hosted libraries (MapLibre GL, deck.gl) load in the HTML `<head>` to avoid bundling.
+The two tab modules are assembled in `app.py`, which defines the top-level UI and server, injects the shared CSS, and passes everything to Shiny's `App` constructor [@shiny2024]. Shared CSS supports dark and light mode via `@media (prefers-color-scheme: light)`, and CDN-hosted libraries (MapLibre GL, deck.gl) load in the HTML `<head>` to avoid bundling.
 
 ```{python app-entry}
 #| label: app-entry
 
-# app.py — entry point
+# app.py entry point
 from shiny import App, ui
 from live_tab import live_ui, live_server
 from hist_tab import hist_ui, hist_server
@@ -836,24 +600,24 @@ app = App(app_ui, server)
 
 ## Key Findings
 
-The dashboard makes several patterns from the European air quality literature visually tractable. The animated view immediately reveals that **Eastern European countries** — particularly Poland, Bulgaria, and Romania — show systematically higher PM10 than Western Europe [@eu2016necd], consistent with continued reliance on coal and biomass for heating. This disparity persists at the end of the 2013–2024 window, suggesting the downward trend has not yet closed the geographic gap.
+The dashboard makes several patterns from the European air quality literature visually tractable. The animated view immediately reveals that **Eastern European countries**, particularly Poland, Bulgaria, and Romania, show systematically higher PM10 than Western Europe [@eu2016necd], consistent with continued reliance on coal and biomass for heating. This disparity persists at the end of the 2013 to 2024 window, suggesting the downward trend has not yet closed the geographic gap.
 
-The Year-over-Year chart summarises the **long-term improvement trend**: most years show a stepwise reduction in peak winter values, consistent with EU emission-reduction directives. The seasonal structure — pronounced winter peaks in December–February, lower summer values — holds across all countries, driven by residential heating combined with temperature-inversion meteorology that traps emissions near the surface.
+The Year-over-Year chart summarises the **long-term improvement trend**: most years show a stepwise reduction in peak winter values, consistent with EU emission-reduction directives. The seasonal structure holds across all countries. It includes pronounced winter peaks in December to February and lower summer values, driven across all countries, driven by residential heating combined with temperature-inversion meteorology that traps emissions near the surface.
 
-The area-type differentiation confirms that **urban stations report consistently higher values** than suburban or rural sites in the same region — with direct implications for exposure assessment: urban residents face higher long-term pollutant burdens than country-level statistics alone suggest.
+The area-type differentiation confirms that **urban stations report consistently higher values** than suburban or rural sites in the same region, with direct implications for exposure assessment.
 
 ## Limitations
 
 The following limitations should be considered when interpreting the dashboard outputs.
 
-- **Daily averaging**: Intra-day peaks driven by traffic rush hours or episodic industrial releases are averaged out at the daily granularity stored in the historic database.
-- **Live API coverage**: Not all countries report all four pollutants via the EEA live API; some country–pollutant combinations return zero station results.
-- **Coordinate matching**: Approximately 5% of live stations cannot be placed on the map due to unresolved sampling-point ID mismatches between the Parquet metadata and the station CSV.
-- **AI explanations**: Gemini-generated peak explanations are contextually plausible but are not verified against official EEA event logs or peer-reviewed post-hoc analyses. They should be treated as indicative interpretations rather than authoritative attribution.
+* Daily averaging. Intra-day peaks driven by traffic rush hours or episodic industrial releases are averaged out at the daily granularity stored in the historic database.
+* Live API coverage. Not all countries report all four pollutants via the EEA live API, and some country and pollutant combinations return zero station results.
+* Coordinate matching. Approximately 5% of live stations cannot be placed on the map due to unresolved sampling-point ID mismatches between the Parquet metadata and the station CSV.
+* AI explanations. Gemini-generated peak explanations are contextually plausible but are not verified against official EEA event logs or peer-reviewed post-hoc analyses. They should be treated as indicative interpretations rather than authoritative attribution.
 
 ## Conclusion
 
-The dashboard communicates twelve years of European air quality data through animated spatial visualisation, seasonal comparison charts, live monitoring, and AI-assisted interpretation. The animation extension is a compelling narrative tool for exploring how pollution evolves with the seasons and responds to decade-scale policy change — an immediacy no static chart matches. Future work could add weather reanalysis overlays (ERA5 wind fields, boundary-layer height), country-level trend lines, a mobile layout, and automated alerting when live values cross EAQI thresholds.
+The dashboard communicates twelve years of European air quality data through animated spatial visualisation, seasonal comparison charts, live monitoring, and AI-assisted interpretation. The animation extension is a compelling narrative tool for exploring how pollution evolves with the seasons and responds to decade scale policy change. This creates an immediacy no static chart matches. Future work could add weather reanalysis overlays, country-level trend lines, a mobile layout, and automated alerting when live values cross EAQI thresholds.
 
 \newpage
 
@@ -864,13 +628,13 @@ The dashboard communicates twelve years of European air quality data through ani
 | Task | Lejla | Florian | Claudio |
 |:---|:---:|:---:|:---:|
 | Project architecture & Shiny setup | | $\checkmark$ | |
-| Historic tab — map (deck.gl) | $\checkmark$ | $\checkmark$ | |
-| Historic tab — animation engine | $\checkmark$ | $\checkmark$ | $\checkmark$ |
-| Historic tab — charts (Altair) | $\checkmark$ | $\checkmark$ | $\checkmark$ |
-| Historic tab — AI integration | | | $\checkmark$ |
-| Historic tab — country filter & auto-zoom | $\checkmark$ | $\checkmark$ | $\checkmark$ |
-| Live tab — EEA API integration | | $\checkmark$ | $\checkmark$ |
-| Live tab — map & station comparison | $\checkmark$ | $\checkmark$ | $\checkmark$ |
+| Historic tab map with deck.gl | $\checkmark$ | $\checkmark$ | |
+| Historic tab animation engine | $\checkmark$ | $\checkmark$ | $\checkmark$ |
+| Historic tab charts with Altair | $\checkmark$ | $\checkmark$ | $\checkmark$ |
+| Historic tab AI integration | | | $\checkmark$ |
+| Historic tab country filter and auto zoom | $\checkmark$ | $\checkmark$ | $\checkmark$ |
+| Live tab EEA API integration | | $\checkmark$ | $\checkmark$ |
+| Live tab map and station comparison | $\checkmark$ | $\checkmark$ | $\checkmark$ |
 | Station metadata preprocessing | | $\checkmark$ | |
 | Performance optimisation (lru\_cache) | $\checkmark$ | $\checkmark$ | $\checkmark$ |
 | Bug testing & quality assurance | $\checkmark$ | $\checkmark$ | $\checkmark$ |
@@ -883,18 +647,18 @@ The dashboard communicates twelve years of European air quality data through ani
 
 # Declaration of AI Use
 
-Parts of this implementation were developed with assistance from **Claude** (Anthropic, `claude.ai`). Specific areas of AI-assisted development include:
+Parts of this implementation were developed with assistance from [**Claude**](https://claude.ai) by Anthropic. Specific areas of AI-assisted development include the following items.
 
-- Conversion of the initial Streamlit prototype to Python Shiny
-- Implementation of the deck.gl / MapLibre GL map integration
-- Design of the non-blocking animation engine using `reactive.invalidate_later()`
-- Development of the Vega signal-based chart dot update mechanism (preserving zoom state across animation frames)
-- Performance optimisation through `lru_cache` strategies for DuckDB queries
-- Debugging of WebSocket message handling between Python and JavaScript
+* Conversion of the initial Streamlit prototype to Python Shiny.
+* Implementation of the deck.gl and MapLibre GL map integration.
+* Design of the non-blocking animation engine using `reactive.invalidate_later()`.
+* Development of the Vega signal-based chart dot update mechanism that preserves zoom state across animation frames.
+* Performance optimisation through `lru_cache` strategies for DuckDB queries.
+* Debugging of WebSocket message handling between Python and JavaScript.
 
-All AI-generated code was reviewed, tested, and adapted by the team before integration into the codebase. All scientific and design decisions — including EAQI threshold definitions, chart type selection, storytelling structure, and result interpretation — were made independently by the team.
+All AI-generated code was reviewed, tested, and adapted by the team before integration into the codebase. All scientific and design decisions, including EAQI threshold definitions, chart type selection, storytelling structure, and result interpretation, were made independently by the team.
 
-The **"Ask AI about peaks"** dashboard feature uses the Google Gemini API (`gemini-2.5-flash`) at runtime to generate contextual explanations of pollution peak events. This is an intentional product feature, not a development tool, and is described as such in Section 3 (Key Dashboard Functionalities) and Section 7 (Live Tab).
+The **"Ask AI about peaks"** dashboard feature uses the Google Gemini API (`gemini-2.5-flash`) at runtime to generate contextual explanations of pollution peak events. This is an intentional product feature, not a development tool, and is described as such in Section 3 (Key Dashboard Functionalities) and the Historic Tab section.
 
 No AI tools were used for data collection, data preprocessing, statistical analysis, or interpretation of the scientific findings presented in this report.
 
