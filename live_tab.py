@@ -1,5 +1,5 @@
 """
-live_tab.py — Live Data tab UI and server logic.
+live_tab.py - Live Data tab UI and server logic.
 
 Exposes:
   live_ui()                          → NavPanel / ui fragment
@@ -201,38 +201,42 @@ def live_ui():
                 ui.output_ui("comparison_section"),
             ),
             ui.div(
+                ui.h4("Live Data"),
                 ui.accordion(
                     ui.accordion_panel(
                         "About this view",
                         ui.tags.p(
-                            "Shows the latest hourly air quality readings from EEA monitoring "
-                            "stations. Select a country and pollutant, then click stations on "
-                            "the map to compare their readings over the past 7 days. Use the "
-                            "time slider or animation to step through hourly snapshots.",
-                            style="color:#bbb; font-size:12px; line-height:1.6;"
+                            "This tab shows what's happening right now. It pulls the latest hourly "
+                            "air quality readings from EEA monitoring stations across your selected "
+                            "country. Pick a pollutant and click on stations directly on the map to "
+                            "compare how their readings have developed over the past 7 days. You can "
+                            "also step through time using the slider or animation to see how conditions "
+                            "changed hour by hour.",
+                            style="font-size:14px; line-height:1.6;"
                         ),
                         ui.tags.p(
-                            "Station colors reflect the European Air Quality Index (EAQI) "
-                            "category at the displayed hour. Station shape indicates environment "
-                            "type: solid = urban, bordered = suburban, hollow ring = rural.",
-                            style="color:#bbb; font-size:12px; line-height:1.6;"
+                            "The color of each station reflects its current European Air Quality Index "
+                            "(EAQI) category, from Good (blue) to Extremely Poor (dark red). The shape "
+                            "tells you about the station's surroundings: solid dots are urban stations, "
+                            "dots with a white border are suburban, and hollow rings are rural. This "
+                            "distinction matters because air quality can vary significantly between a city "
+                            "center and the countryside just a few kilometers away.",
+                            style="font-size:14px; line-height:1.6;"
                         ),
                     ),
                     open=False,
                 ),
                 ui.layout_columns(
-                    ui.h4("Live Data"),
-                    ui.input_select("pollutant", None, choices=POLLUTANTS, selected="PM10"),
+                    ui.input_select("pollutant", "Pollutant", choices=POLLUTANTS, selected="PM10"),
+                    ui.input_select("country", "Country", choices=COUNTRIES, selected="CH"),
                     col_widths=(6, 6),
                 ),
-                ui.input_select("country", "Country", choices=COUNTRIES, selected="CH",
-                                width="100%"),
-                ui.input_action_button("load", "Load / Refresh", class_="btn-primary"),
-                ui.output_ui("hour_slider_ui"),
+                ui.input_action_button("load", "Refresh", class_="btn-primary", width="48%"),
+                ui.tags.div(ui.output_ui("hour_slider_ui"), style="margin-top:16px;"),
                 ui.layout_columns(
                     ui.input_action_button("play", "Play", class_="btn-primary"),
                     ui.input_action_button("stop", "Stop", class_="btn-outline-secondary"),
-                    col_widths=(4, 8),
+                    col_widths=(6, 6),
                 ),
                 ui.input_slider("live_speed", "Animation Speed",
                                 min=1, max=5, value=3, step=1, ticks=True),
@@ -345,6 +349,7 @@ def live_server(input, output, session):
                 "hour_slider", "Scrub through time",
                 min=hours[0], max=hours[-1], value=hours[-1],
                 step=timedelta(hours=1), time_format="%d %b, %H:%M",
+                width="100%",
             )
         if len(hours) == 1:
             return ui.tags.div(
@@ -691,8 +696,7 @@ def live_server(input, output, session):
             worst_lbl = get_aqi_label(worst["Value"], pollutant) or "—"
             best_lbl  = get_aqi_label(best["Value"], pollutant) or "—"
             cards.append(f"""
-<div style="flex:1;min-width:250px;border-left:4px solid {colour};padding:8px 14px;
-            background:#1a1a1a;border-radius:4px;font-size:13px;line-height:1.8">
+<div class="stats-box" style="flex:1;min-width:250px;border-left:4px solid {colour};padding:8px 14px;">
   <b>{station}</b><br>
   <span style="color:{colour}">● Mostly {dominant} this week</span><br>
   <span style="color:#bbb">⬆ Worst: {worst["Start"].strftime("%a %d %b, %H:%M")} —

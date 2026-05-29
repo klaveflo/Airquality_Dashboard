@@ -21,5 +21,10 @@ Historic Tab:
 - beide plots unten: background farben für pollution klasse (wie chart live tab) - DONE
 
 
-AI prompt .py filled
+AI prompt .py file
 - Prompt verbessern und stabil machen.
+
+About this view unter tab name, dann drop down menues - DONE
+Pollutant selection auf gleiche höhe wie country, beide hälfte der reihe - DONE
+animation speed in historic tab 4 und 5 nicht schneller als 3 (in live tab ist gut, also gleich anpassen wie live) - DONE
+im light mode passen nicht alle farben (z.b.)

@@ -11,7 +11,6 @@ import zipfile
 import importlib
 from functools import lru_cache
 from datetime import datetime, timedelta, timezone
-import datetime as _dt
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
@@ -769,13 +768,6 @@ def build_hist_avg_chart(df_avg, current_date, pollutant="PM10"):
 def build_yoy_chart(df_yoy, pollutant):
     if df_yoy.empty:
         return alt.Chart(pd.DataFrame()).mark_line().properties(height=300)
-    years = sorted(df_yoy["Year"].unique())
-    if len(years) > 5:
-        step  = max(1, len(years) // 4)
-        picked = years[::step]
-        if years[-1] not in picked:
-            picked = list(picked) + [years[-1]]
-        df_yoy = df_yoy[df_yoy["Year"].isin(picked)]
 
     # EAQI background bands — clipped to data range so axis isn't distorted.
     # Alternating opacity (0.30 / 0.20) makes adjacent bands distinguishable;
@@ -810,6 +802,7 @@ def build_yoy_chart(df_yoy, pollutant):
         )
     )
 
+    year_sel = alt.selection_point(fields=["YearStr"], bind="legend")
     line = (
         alt.Chart(df_yoy)
         .mark_line(point=True, strokeWidth=2)
@@ -820,12 +813,14 @@ def build_yoy_chart(df_yoy, pollutant):
                     scale=alt.Scale(domain=[0, y_max]),
                     axis=alt.Axis(titlePadding=15)),
             color=alt.Color("YearStr:N", title="Year"),
+            opacity=alt.condition(year_sel, alt.value(1.0), alt.value(0.15)),
             tooltip=[
                 alt.Tooltip("YearStr:N", title="Year"),
                 alt.Tooltip("MonthDate:T", format="%B", title="Month"),
                 alt.Tooltip("AvgValue:Q", format=".1f", title="µg/m³"),
             ],
         )
+        .add_params(year_sel)
         .properties(height=300, title="Year-over-Year Comparison (monthly averages)")
         .interactive()
     )
@@ -834,5 +829,3 @@ def build_yoy_chart(df_yoy, pollutant):
         .resolve_scale(color="independent")
         .properties(width="container")
     )
-
-
