@@ -7,7 +7,6 @@ Exposes:
 """
 
 import datetime as _dt
-import time as _time
 
 import pandas as pd
 
@@ -240,7 +239,7 @@ _HIST_CHART_JS = r"""
 
 def hist_ui():
     return ui.nav_panel("Historic Data",
-        # Vega stack — must load before our JS runs vegaEmbed
+        # Vega stack - must load before our JS runs vegaEmbed
         ui.tags.script(src="https://cdn.jsdelivr.net/npm/vega@5"),
         ui.tags.script(src="https://cdn.jsdelivr.net/npm/vega-lite@5"),
         ui.tags.script(src="https://cdn.jsdelivr.net/npm/vega-embed@6"),
@@ -259,41 +258,41 @@ def hist_ui():
             ),
             # Right: controls + stats
             ui.div(
+                ui.h4("Historic Data"),
                 ui.accordion(
                     ui.accordion_panel(
                         "About this view",
                         ui.tags.p(
-                            "Explore long-term air quality trends from the EEA historical "
-                            "database. Select a pollutant, country, and date range to see how "
-                            "daily average concentrations evolved over time. Use the animation "
-                            "to watch pollution change day by day, or click the chart to jump "
-                            "to a specific date.",
-                            style="color:#bbb; font-size:12px; line-height:1.6;"
+                            "Take a step back and look at the bigger picture. This tab lets "
+                            "you explore years of daily air quality data from the EEA archive. "
+                            "Select a pollutant, country, and date range to see how average "
+                            "pollution levels have shifted over time. Hit Play to animate through "
+                            "the timeline day by day and watch pollution patterns move across the "
+                            "map, or click directly on the chart to jump to a date that catches your eye.",
+                            style="font-size:14px; line-height:1.6;"
                         ),
                         ui.tags.p(
-                            "The Year-over-Year chart highlights seasonal patterns and "
-                            "long-term trends across multiple years. Use 'Jump to Peak' to "
-                            "locate the highest recorded value, or 'Ask AI' to get context "
-                            "about what may have caused a pollution spike.",
-                            style="color:#bbb; font-size:12px; line-height:1.6;"
+                            "The Year-over-Year comparison below reveals seasonal rhythms and long-term trends, "
+                            "you might notice winter peaks from heating emissions or gradual improvements from "
+                            "policy changes. Curious about a sudden spike? Use 'Jump to Peak' to find the worst "
+                            "day in your selected range, then ask the AI assistant for possible explanations.",
+                            style="font-size:14px; line-height:1.6;"
                         ),
                     ),
                     open=False,
                 ),
                 ui.layout_columns(
-                    ui.h4("Historic Data"),
-                    ui.input_select("hist_pollutant", None,
+                    ui.input_select("hist_pollutant", "Pollutant",
                                     {"PM10": "PM10", "PM2.5": "PM2.5"},
                                     selected="PM10"),
+                    ui.input_select("hist_country", "Country",
+                                    choices={"ALL": "All Europe", **{
+                                        k: v for k, v in COUNTRIES.items()
+                                        if k in hist_available_countries()
+                                    }},
+                                    selected="ALL"),
                     col_widths=(6, 6),
                 ),
-                ui.input_select("hist_country", "Country",
-                                choices={"ALL": "All Europe", **{
-                                    k: v for k, v in COUNTRIES.items()
-                                    if k in hist_available_countries()
-                                }},
-                                selected="ALL",
-                                width="100%"),
                 ui.layout_columns(
                     ui.input_date("hist_start", "Start Bound",
                                   value="2013-01-01",
@@ -318,7 +317,7 @@ def hist_ui():
                     ui.input_action_button("hist_play", "Play",
                                            class_="btn-primary"),
                     ui.input_action_button("hist_stop", "Stop", class_="btn-outline-secondary"),
-                    col_widths=(4, 8),
+                    col_widths=(6, 6),
                 ),
                 ui.input_slider("hist_speed", "Animation Speed",
                                 min=1, max=5, value=3, step=1, ticks=True),
@@ -383,10 +382,6 @@ def hist_server(input, output, session):
         view = COUNTRY_VIEWS.get(input.hist_country(), COUNTRY_VIEWS["ALL"])
         await session.send_custom_message("update_hist_map_view", view)
 
-    # ── Bug fix 1 & 2: use hist_playing() not hist_playing.get() ──────────────
-    # Using .get() breaks reactive dependency — the effect never re-fires when
-    # hist_playing changes, so Stop has no effect and speed is ignored.
-
     @reactive.effect
     @reactive.event(input.hist_play)
     def _hist_play():
@@ -420,8 +415,8 @@ def hist_server(input, output, session):
             ui.update_slider("hist_date", value=cur)
         else:
             hist_anim_date.set(nxt)
-            # Do NOT call ui.update_slider here: queuing one message per frame
-            # creates in-flight round-trips that cause a jump-back on Stop.
+            _slider_update_in_flight.set(True)
+            ui.update_slider("hist_date", value=nxt)
 
     # Sync hist_anim_date from the slider when the user manually scrubs (not playing).
     # This effect only fires on user interaction because the animation loop never
@@ -515,22 +510,9 @@ def hist_server(input, output, session):
     def hist_eaqi_legend():
         return ui.HTML(build_eaqi_legend(input.hist_pollutant()))
 
-    # Timestamp of the last map push — used to throttle at high animation speeds.
-    _map_push_ts = [0.0]
-
     @reactive.effect
     async def _push_hist_map():
         cur = hist_current_date()
-        # At speeds 4/5 the frame interval (0.25 s / 0.1 s) is shorter than the
-        # map query + payload time (~0.3–0.5 s), so cap map updates at ~2–3 fps
-        # there.  The date label still advances every frame.
-        with reactive.isolate():
-            spd = input.hist_speed()
-        if hist_playing() and spd >= 5:
-            now = _time.monotonic()
-            if now - _map_push_ts[0] < 0.2:
-                return
-            _map_push_ts[0] = now
         df = hist_get_map_data(str(cur), hist_table(), hist_master())
         payload = build_hist_map_payload(df)
         await session.send_custom_message("update_hist_map_data", payload)
@@ -584,8 +566,7 @@ def hist_server(input, output, session):
             today_row["AvgValue"].iloc[0] if not today_row.empty else None, poll) or "—"
         colour = EAQI_COLOURS.get(today_lbl, "#888")
         return ui.HTML(f"""
-<div style="background:#1a1a1a;border-radius:6px;padding:12px;font-size:13px;
-            line-height:1.9;border:1px solid #333;">
+<div class="stats-box">
   <b>Period Statistics</b><br>
   <span style="color:#aaa">Today's mean:</span>
     <b style="color:{colour}">{today_val}</b>

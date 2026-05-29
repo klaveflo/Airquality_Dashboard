@@ -1,5 +1,5 @@
 """
-app.py — entry point for the combined Air Quality Dashboard.
+app.py - entry point for the combined Air Quality Dashboard.
 
 Run with:
     shiny run --reload app.py
@@ -85,8 +85,30 @@ h1, h2, h3, h4, h5, h6 { color: #fafafa; }
 }
 #deck-map canvas, #deck-hist-map canvas { outline: none; }
 
+/* ── Stats boxes ───────────────────────────────────────────────────────── */
+.stats-box {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin: 6px 0;
+    font-size: 13px;
+    line-height: 1.8;
+    color: #fafafa;
+}
+.stats-box b { color: #fafafa; }
+
 /* ── Light mode overrides ──────────────────────────────────────────────── */
 @media (prefers-color-scheme: light) {
+    .stats-box {
+        background-color: #f5f5f5;
+        border-color: #ddd;
+        color: #222;
+    }
+    .stats-box b { color: #222; }
+    .stats-box span[style*="color:#aaa"] { color: #666 !important; }
+    .stats-box span[style*="color:#bbb"] { color: #555 !important; }
+    .stats-box span[style*="color:#ccc"] { color: #444 !important; }
     body { background-color: #f5f7fa; color: #1a1a1a; }
     .card { background-color: #ffffff; border: 1px solid #ddd; }
     .shiny-input-container label { color: #1a1a1a; }
@@ -129,10 +151,12 @@ app_ui = ui.page_fluid(
     ui.tags.style(_APP_CSS),
     ui.h1("Air Quality Map Dashboard"),
     ui.tags.p(
-        "Explore real-time and historical air quality across Europe using data from the "
-        "European Environment Agency (EEA). Compare monitoring stations, track pollution "
-        "levels over time, and examine how air quality varies by region and season.",
-        style="color:#aaa; font-size:14px; margin-bottom:16px; max-width:900px;"
+        "How clean is the air you breathe? This dashboard lets you explore air quality " 
+        "across Europe, powered by open data from the European Environment Agency (EEA)."
+        "Dive into live measurements from hundreds of monitoring stations or explore over " 
+        "a decade of historical trends. Compare cities, track seasonal patterns, and discover "
+        "how pollution levels respond to weather, traffic, and policy changes.",
+        style="font-size:14px; margin-bottom:16px"
     ),
     ui.navset_tab(
         live_ui(),
