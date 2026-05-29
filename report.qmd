@@ -147,38 +147,38 @@ execute:
 ---
 # Introduction
 
-Air quality is one of the most pressing environmental and public health challenges in Europe. According to the World Health Organization, long-term exposure to particulate matter (PM2.5 and PM10) is responsible for millions of premature deaths globally each year [@who2021air], and the European Environment Agency (EEA) consistently identifies air pollution as the single largest environmental health risk across the continent. Concentrations of PM10, PM2.5, nitrogen dioxide (NO2), and ozone (O3) vary substantially across geography, seasons, and years — driven by industrial emissions, residential heating, road traffic, and meteorological conditions such as temperature inversions and long-range transport of Saharan dust. Making this complexity legible through interactive spatial and temporal visualisation is an essential tool for both scientific communication and evidence-based policy monitoring.
+Air quality is one of the most pressing environmental and public health challenges in Europe. Long-term exposure to particulate matter (PM2.5 and PM10) is responsible for millions of premature deaths globally each year [@who2021air], and the European Environment Agency (EEA) identifies air pollution as the continent's largest environmental health risk. Concentrations of PM10, PM2.5, NO2, and O3 vary substantially across geography and season, driven by industrial emissions, residential heating, road traffic, and meteorology such as temperature inversions and Saharan dust transport. Making this complexity legible through interactive visualisation is essential for both scientific communication and evidence-based policy monitoring.
 
-This project develops an **interactive, map-centred dashboard** built on open data from the **EEA Air Quality e-Reporting (AQeR)** programme [@eea2024aqe], the authoritative pan-European monitoring network covering more than 40 countries and thousands of individual monitoring stations. The project was developed as part of the ZHAW module *Communication and Collaboration in Environmental Science* (CCES FS26), with the explicit aim of applying modern scientific communication techniques — interactive visualisation, animated playback, and AI-assisted interpretation — to a real-world environmental dataset. The complete source code is maintained in a public repository at `github.com/[username]/air-quality-dashboard` and the dashboard is launched with a single terminal command (see Section 4).
+This project develops an **interactive, map-centred dashboard** built on open data from the **EEA Air Quality e-Reporting (AQeR)** programme [@eea2024aqe], the pan-European monitoring network covering more than 40 countries and thousands of stations. It was developed for the ZHAW module *Communication and Collaboration in Environmental Science* (CCES FS26), applying modern communication techniques — interactive visualisation, animated playback, and AI-assisted interpretation — to a real-world environmental dataset. The source code is maintained at `github.com/[username]/air-quality-dashboard` and the dashboard launches with a single terminal command (see Section 4).
 
 The central question guiding the design is:
 
 > *How have PM10 and PM2.5 concentrations evolved across Europe between 2013 and 2024, and what does the current (live) situation look like at station level?*
 
-The dashboard answers this through two complementary views: a **Historic tab** for long-term trend exploration with animated playback across more than a decade of daily station measurements, and a **Live tab** for near-real-time monitoring of the most recent seven days at individual station level with hourly resolution.
+The dashboard answers this through two views: a **Historic tab** for long-term trend exploration with animated playback across more than a decade of daily measurements, and a **Live tab** for near-real-time monitoring of the most recent seven days at hourly resolution.
 
-**Extension topic — Animation.** The chosen extension topic is *Animation*. The Historic tab implements a full Play/Stop animation engine that steps through daily snapshots of the entire monitoring network, rendering colour-coded station dots on a WebGL map via deck.gl [@deckgl2024]. A key technical constraint was that the map must not reset its zoom or pan state between frames — solved by pushing data updates through deck.gl's `setProps()` API rather than re-mounting the map element. The result is a fluid temporal narrative of how pollution evolves through seasons and across years, offering qualitatively different insight from any static snapshot.
+**Extension topic — Animation.** The Historic tab implements a Play/Stop animation engine that steps through daily snapshots of the entire monitoring network, rendering colour-coded station dots on a WebGL map via deck.gl [@deckgl2024]. A key constraint was that the map must not reset its zoom or pan state between frames — solved by pushing data updates through deck.gl's `setProps()` API rather than re-mounting the map. The result is a fluid temporal narrative of how pollution evolves through seasons and years, offering insight no static snapshot can.
 
 \newpage
 
 # Storytelling Concept and Intended Insights
 
-Effective data visualisation is not only about technical accuracy — it is about guiding an audience toward meaningful understanding through deliberate narrative structure. The design of this dashboard was shaped by three core tensions embedded in the data, each of which motivates a specific design decision.
+Effective data visualisation is not only about technical accuracy but about guiding an audience toward understanding through deliberate narrative structure. The dashboard's design was shaped by three tensions in the data, each motivating a specific design decision.
 
-**Tension 1: Then versus now.** The split between the Historic and Live tabs creates a temporal contrast that invites users to connect long-term trends with the present situation. A user can observe that Poland has shown a gradual improvement in PM10 over the decade — and then immediately switch to the Live tab to see what Polish stations are reporting today. This past-versus-present structure is a well-established narrative device in environmental communication, emphasising that historical trends are not merely academic but have a direct counterpart in the current world.
+**Tension 1: Then versus now.** The split between Historic and Live tabs invites users to connect long-term trends with the present. A user can observe Poland's gradual PM10 improvement over the decade, then switch to the Live tab to see what Polish stations report today — a past-versus-present device emphasising that historical trends have a direct counterpart in the current world.
 
-**Tension 2: East versus West.** The spatial embedding of the data on a real map makes immediately visible the persistent disparity in air quality between Eastern and Western Europe. Countries such as Poland, Bulgaria, and Romania show systematically higher PM concentrations, reflecting continued reliance on coal and biomass for residential heating [@eu2016necd]. This geographic inequality — which would require multiple paragraphs to convey in prose — is grasped in seconds on the map. The dashboard thereby communicates a message with direct relevance to EU environmental policy: despite measurable continent-wide improvement, geographic equity in air quality remains unresolved.
+**Tension 2: East versus West.** Embedding the data on a real map makes the persistent disparity between Eastern and Western Europe immediately visible. Poland, Bulgaria, and Romania show systematically higher PM concentrations, reflecting continued reliance on coal and biomass for heating [@eu2016necd]. This inequality — which would take paragraphs to convey in prose — is grasped in seconds, carrying a message directly relevant to EU policy: despite continent-wide improvement, geographic equity in air quality remains unresolved.
 
-**Tension 3: Urban versus rural.** Station dots are visually differentiated by area type — urban (solid circle), suburban (circle with white border ring), and rural (hollow ring). This encoding makes the urban–rural pollution gradient visible at every zoom level without requiring active user filtering. Research consistently shows that urban populations face significantly higher pollutant exposures than rural populations [@who2021air]; the map makes this gradient tangible at the level of individual stations.
+**Tension 3: Urban versus rural.** Station dots are differentiated by area type — urban (solid circle), suburban (border ring), rural (hollow ring) — making the urban–rural gradient visible at every zoom level without filtering. Research consistently shows urban populations face higher pollutant exposures than rural ones [@who2021air]; the map makes this tangible at station level.
 
-The **intended primary audience** is environmental scientists, policy analysts, and informed members of the public with an interest in European air quality trends. The dashboard assumes no prior knowledge of the EEA monitoring network but expects basic familiarity with interactive maps and time series. A user completing a full exploration session should arrive at the following key insights:
+The **intended audience** is environmental scientists, policy analysts, and informed members of the public interested in European air quality. The dashboard assumes no prior knowledge of the EEA network but expects basic familiarity with interactive maps and time series. A full exploration session should yield these insights:
 
 1. PM10 and PM2.5 concentrations have declined across most of Europe since 2013, but the pace of improvement is geographically uneven.
 2. Winter peaks in particulate concentrations are a structural feature of European air quality, driven primarily by residential heating emissions.
 3. Significant country- and city-level disparities persist, with Eastern European stations consistently reporting higher values.
 4. Urban monitoring stations record markedly higher pollutant levels than rural stations in the same region.
 
-The **AI-powered peak explanation** feature serves a specific narrative function: it bridges the gap between an observed data pattern and real-world events. When a user notices a spike in the daily average chart, the "Ask AI" button queries the Google Gemini API [@gemini2024] and returns a short contextual explanation — for example, citing a Saharan dust intrusion or a prolonged temperature-inversion episode. This transforms the dashboard from a passive display tool into an active explanatory environment, supporting deeper scientific understanding without requiring the user to leave the application.
+The **AI-powered peak explanation** feature bridges observed data patterns and real-world events. When a user notices a spike in the daily-average chart, the "Ask AI" button queries the Google Gemini API [@gemini2024] and returns a short explanation — for example, a Saharan dust intrusion or a temperature-inversion episode. This turns the dashboard from a passive display into an active explanatory environment without the user leaving the application.
 
 \newpage
 
@@ -188,15 +188,15 @@ The dashboard is organised into two tabs, each targeting a distinct analytical q
 
 ## Historic Tab
 
-**Animated map playback.** A Play/Stop control steps through daily snapshots of all stations between the user-selected start and end dates. Speed is controlled by a five-position slider corresponding to 0.1 – 1.2 seconds per frame. The current date advances in real time and is displayed above the map. Critically, zoom and pan state are preserved across all animation frames via deck.gl's `setProps()` rather than a full map remount — the core design decision that makes smooth, exploratory animation possible.
+**Animated map playback.** A Play/Stop control steps through daily snapshots of all stations between the selected start and end dates. A five-position slider sets speed (0.1–1.2 s/frame) and the current date is displayed above the map. Zoom and pan state are preserved across frames via deck.gl's `setProps()` rather than a full remount — the core decision enabling smooth, exploratory animation.
 
-**EAQI colour coding.** Each station dot is coloured according to the official six-tier European Air Quality Index [@eea2023eaqi], using a colourblind-friendly diverging palette (blue → yellow → red). Missing values are rendered as fully transparent dots rather than omitted, preserving the visual structure of the monitoring network and making data gaps explicit to the user.
+**EAQI colour coding.** Each dot is coloured by the official six-tier European Air Quality Index [@eea2023eaqi] using a colourblind-friendly blue→yellow→red palette. Missing values render as transparent dots rather than omitted, preserving the network structure and making data gaps explicit.
 
 **Area-type differentiation.** Urban, suburban, and rural stations are rendered with distinct visual encodings (solid, border-ring, and hollow circles respectively), making the urban–rural gradient legible at any zoom level without requiring explicit filtering.
 
-**Country filter with automatic zoom.** A dropdown covering all 29 represented countries restricts the map, charts, and summary statistics to that country's stations, and smoothly zooms the map to the country's bounding box. All charts update accordingly within the same reactive graph.
+**Country filter with automatic zoom.** A dropdown covering all 29 represented countries restricts the map, charts, and statistics to that country's stations and smoothly zooms to its bounding box, with all charts updating in the same reactive graph.
 
-**Daily average time series with interactive date selection.** An Altair chart shows the network-wide (or country-filtered) daily mean concentration. Clicking any point on this chart jumps the map to the corresponding date, enabling seamless back-and-forth navigation between chart and map without breaking the animation state.
+**Daily average time series with interactive date selection.** An Altair chart shows the network-wide (or country-filtered) daily mean. Clicking any point jumps the map to that date, enabling seamless navigation between chart and map without breaking the animation state.
 
 **Year-over-Year comparison chart.** Up to five representative years are selected automatically and overlaid on a shared January–December axis, making seasonal structure and inter-annual change directly comparable at a glance.
 
@@ -204,9 +204,9 @@ The dashboard is organised into two tabs, each targeting a distinct analytical q
 
 ## Live Tab
 
-**Seven-day live station map.** EEA Parquet files for the most recent seven days are downloaded concurrently using a 20-thread pool executor, parsed, and rendered as a colour-coded station map. Data is fetched per country and pollutant combination on demand.
+**Seven-day live station map.** EEA Parquet files for the most recent seven days are downloaded concurrently using a 20-thread pool executor, parsed, and rendered as a colour-coded station map, fetched per country–pollutant combination on demand.
 
-**Station comparison panel.** Clicking two stations on the map opens a side-by-side hourly time-series comparison. EAQI quality bands are rendered as translucent background rectangles, providing immediate visual calibration. A stacked bar chart summarises the proportion of hours in each quality category over the seven-day window.
+**Station comparison panel.** Clicking two stations opens a side-by-side hourly comparison. EAQI quality bands are rendered as translucent background rectangles, and a stacked bar chart summarises the proportion of hours in each category over the seven days.
 
 **Pollutant selector.** Users can switch between PM10, PM2.5, NO2, and O3. All colours, thresholds, and data queries update dynamically, using pollutant-specific EAQI breakpoints throughout.
 
@@ -214,7 +214,7 @@ The dashboard is organised into two tabs, each targeting a distinct analytical q
 
 # Setup and Configuration
 
-This document contains the complete annotated source code for the Air Quality Dashboard. The application is split across four Python modules (`app.py`, `hist_tab.py`, `live_tab.py`, and a shared utilities module). The full codebase is available at the repository URL listed on the title page. Run the dashboard from the project root with:
+This document contains the complete annotated source code for the dashboard, split across four Python modules (`app.py`, `hist_tab.py`, `live_tab.py`, and a shared utilities module). The full codebase is at the repository URL on the title page. Run from the project root with:
 
 ```bash
 shiny run --reload app.py
@@ -313,14 +313,14 @@ def get_aqi_label(value, pollutant):
 
 ## Historic Database (DuckDB)
 
-The historic data is stored in a local **DuckDB** database [@duckdb2024]. DuckDB is an in-process analytical database optimised for column-oriented queries — well suited for aggregating millions of daily station measurements without the overhead of a separate server process. The database was populated from EEA AQeR bulk downloads and contains two tables:
+The historic data is stored in a local **DuckDB** database [@duckdb2024], an in-process analytical database optimised for column-oriented queries — well suited for aggregating millions of measurements without a separate server process. Populated from EEA AQeR bulk downloads, it contains two tables:
 
 - `airquality_5` — PM10 daily measurements, 29 European countries, 2013–2024
 - `airquality_6001` — PM2.5 daily measurements, 29 European countries, 2013–2024
 
-Each row contains the columns `Date`, `Value` (in µg/m³), `Country` (ISO 3166-1 alpha-2 code), `Latitude`, and `Longitude`. The combined dataset spans over 40 million measurement records, making efficient columnar storage and query caching essential for interactive response times.
+Each row holds `Date`, `Value` (µg/m³), `Country` (ISO 3166-1 alpha-2), `Latitude`, and `Longitude`. The combined dataset spans over 40 million records, making columnar storage and query caching essential for interactive response times.
 
-All queries against the historic database are wrapped with Python's `@lru_cache` decorator using the date string and table name as cache keys, so that repeating an animation frame or moving back to a previously visited date requires no additional database I/O. This design pattern is detailed further in the Historic Tab section.
+All historic queries are wrapped with Python's `@lru_cache` using the date string and table name as keys, so replaying an animation frame or revisiting a date needs no extra database I/O — detailed further in the Historic Tab section.
 
 ```{python db-connection}
 #| label: db-connection
@@ -358,7 +358,7 @@ print(summary)
 
 ### Station Metadata
 
-A supplementary CSV file (`station_metadata_clean.csv`) links station sampling-point IDs to human-readable names, geographic coordinates, and **area type** (urban, suburban, rural). This classification is the basis for the three-symbol visual differentiation on the map and was prepared in a dedicated preprocessing notebook (`metadata_prep.ipynb`). The area-type field follows the EEA's station classification vocabulary. Approximately 5% of live station IDs could not be matched to the metadata CSV; these stations are excluded from the map but are retained in time-series charts where coordinate information is not required.
+A supplementary CSV (`station_metadata_clean.csv`) links sampling-point IDs to names, coordinates, and **area type** (urban, suburban, rural) — the basis for the three-symbol map differentiation, prepared in `metadata_prep.ipynb` and following the EEA classification vocabulary. About 5% of live station IDs could not be matched; these are excluded from the map but retained in time-series charts where coordinates are not required.
 
 ```{python station-metadata}
 #| label: station-metadata
@@ -382,7 +382,7 @@ def get_station_coords():
 
 ## Live Data (EEA Parquet API)
 
-The Live tab fetches the most recent seven days of hourly measurements directly from the **EEA AQeR download API** [@eea2024aqe]. A POST request specifies the country code, pollutant, and a rolling seven-day time window ending at the current UTC time. The API returns a list of Parquet file URLs — one per station — which are then downloaded concurrently using a `ThreadPoolExecutor` with 20 worker threads to minimise total loading time. Parquet was chosen as the transfer format because it provides efficient columnar compression and allows column-selective reading without deserialising the full payload.
+The Live tab fetches the most recent seven days of hourly measurements from the **EEA AQeR download API** [@eea2024aqe]. A POST request specifies country, pollutant, and a rolling seven-day window ending at the current UTC time; the API returns one Parquet URL per station, downloaded concurrently via a `ThreadPoolExecutor` with 20 worker threads. Parquet was chosen for its columnar compression and column-selective reading without deserialising the full payload.
 
 ```{python live-fetch}
 #| label: live-fetch
@@ -478,7 +478,7 @@ The raw EEA data contains a number of quality issues encountered during developm
 
 ## Query Functions
 
-All historic queries run against the local DuckDB database. The query architecture is built around two principles: (1) expensive full-table scans are performed once and cached per table name, and (2) per-date queries are cached using the ISO date string and table name as composite keys. This means that when the animation replays a date it has previously rendered, the result is returned from the Python `lru_cache` in microseconds rather than re-executing a SQL query.
+All historic queries run against the local DuckDB database around two principles: expensive full-table scans run once and are cached per table, and per-date queries are cached on the ISO date string plus table name. When the animation replays a rendered date, the result returns from `lru_cache` in microseconds rather than re-running SQL.
 
 ```{python hist-queries}
 #| label: hist-queries
@@ -584,7 +584,7 @@ def hist_get_yoy_data(table_name, start, end):
 
 ## Animation Engine
 
-The animation engine is the technical centrepiece of the extension topic implementation. The key design decision is to use `reactive.invalidate_later()` rather than a blocking `while` loop: this keeps Shiny's event loop fully responsive during playback, allowing the user to change the speed, stop the animation, or interact with any other UI element at any time. Each invocation of `_hist_advance()` schedules its own next execution, effectively creating a non-blocking timer that fires once per frame at the user-selected interval.
+The animation engine is the centrepiece of the extension topic. The key decision is to use `reactive.invalidate_later()` rather than a blocking `while` loop, keeping Shiny's event loop responsive so the user can change speed, stop, or interact with any UI element during playback. Each call to `_hist_advance()` schedules its own next execution — a non-blocking timer firing once per frame at the chosen interval.
 
 ```{python hist-animation}
 #| label: hist-animation
@@ -626,7 +626,7 @@ def hist_server_animation_excerpt(input, output, session):
 
 ## Map Rendering: deck.gl + MapLibre GL
 
-The map is a static `<div id="deck-hist-map">` mounted once at page load. **deck.gl** [@deckgl2024] renders three `ScatterplotLayer` instances — one each for urban, suburban, and rural stations — on a **MapLibre GL** [@maplibre2024] base map. Data updates arrive via Shiny's custom WebSocket message channel and are applied with `setProps()`, meaning no re-mount occurs across animation frames or country changes and the user's zoom and pan state is fully preserved throughout.
+The map is a static `<div id="deck-hist-map">` mounted once at page load. **deck.gl** [@deckgl2024] renders three `ScatterplotLayer` instances — urban, suburban, rural — on a **MapLibre GL** [@maplibre2024] base map. Updates arrive via Shiny's WebSocket channel and are applied with `setProps()`, so no re-mount occurs across frames or country changes and zoom/pan state is fully preserved.
 
 ```{python map-payload}
 #| label: map-payload
@@ -732,7 +732,7 @@ def build_yoy_chart(df_yoy, pollutant):
 
 ## AI-Powered Peak Explanation
 
-The Historic tab includes an "Ask AI" feature that sends the currently selected date and pollutant to the **Google Gemini API** [@gemini2024]. The model (`gemini-2.5-flash`) returns a 1–2 sentence contextual explanation of what event likely caused the observed pollution peak. The function is deliberately kept narrow in scope: it provides environmental context (e.g. meteorological events, dust transport episodes, seasonal heating onset) rather than general air quality information, keeping responses concise and directly actionable for the user.
+The Historic tab's "Ask AI" feature sends the selected date and pollutant to the **Google Gemini API** [@gemini2024]. The model (`gemini-2.5-flash`) returns a 1–2 sentence explanation of the likely cause of an observed peak. Its scope is deliberately narrow — environmental context (meteorological events, dust transport, seasonal heating onset) rather than general air-quality information — keeping responses concise and actionable.
 
 ```{python ai-query}
 #| label: ai-query
@@ -759,7 +759,7 @@ def ask_llm_about_peak(date_str, metric):
 
 ## Live Station Comparison
 
-Clicking two stations on the live map opens a comparison panel containing an hourly time series overlaid with EAQI band backgrounds and a stacked bar chart showing the proportion of hours in each quality category over the seven-day window. The band backgrounds are constructed programmatically from the pollutant-specific EAQI thresholds, so the chart is correct for all four supported pollutants without any hard-coded values.
+Clicking two stations on the live map opens a comparison panel: an hourly time series overlaid with EAQI band backgrounds and a stacked bar chart showing the proportion of hours in each quality category over the seven days. The bands are built programmatically from pollutant-specific thresholds, so the chart is correct for all four pollutants without hard-coded values.
 
 ```{python live-comparison}
 #| label: live-comparison
@@ -796,7 +796,7 @@ def build_comparison_chart(df_sel, pollutant):
 
 ## Application Entry Point
 
-The four modules are assembled in `app.py`, which defines the top-level UI and server functions and passes them to Shiny's `App` constructor. The shared CSS supports both dark and light mode via `@media (prefers-color-scheme: light)`. CDN-hosted JavaScript libraries (MapLibre GL, deck.gl) are loaded in the HTML `<head>` to avoid bundling them with the Python package.
+The four modules are assembled in `app.py`, which defines the top-level UI and server and passes them to Shiny's `App` constructor. Shared CSS supports dark and light mode via `@media (prefers-color-scheme: light)`, and CDN-hosted libraries (MapLibre GL, deck.gl) load in the HTML `<head>` to avoid bundling.
 
 ```{python app-entry}
 #| label: app-entry
@@ -836,11 +836,11 @@ app = App(app_ui, server)
 
 ## Key Findings
 
-The dashboard confirms and makes visually tractable several patterns well established in the European air quality literature. The animated spatial view immediately reveals that **Eastern European countries** — particularly Poland, Bulgaria, and Romania — show systematically higher PM10 concentrations than Western Europe [@eu2016necd], consistent with continued reliance on coal and biomass for residential heating. This East–West disparity persists even at the end of the 2013–2024 observation window, suggesting that the long-term downward trend has not yet closed the geographic gap.
+The dashboard makes several patterns from the European air quality literature visually tractable. The animated view immediately reveals that **Eastern European countries** — particularly Poland, Bulgaria, and Romania — show systematically higher PM10 than Western Europe [@eu2016necd], consistent with continued reliance on coal and biomass for heating. This disparity persists at the end of the 2013–2024 window, suggesting the downward trend has not yet closed the geographic gap.
 
-The Year-over-Year comparison chart provides a clear summary of the **long-term improvement trend** across Europe. Most years show a stepwise reduction in peak winter values relative to the same months one or two years earlier, consistent with the effects of EU emission reduction directives on the residential and industrial sectors. The seasonal structure — pronounced winter peaks in December–February, substantially lower summer values — is consistent across all countries and driven primarily by residential heating combined with temperature-inversion meteorology that traps emissions near the surface.
+The Year-over-Year chart summarises the **long-term improvement trend**: most years show a stepwise reduction in peak winter values, consistent with EU emission-reduction directives. The seasonal structure — pronounced winter peaks in December–February, lower summer values — holds across all countries, driven by residential heating combined with temperature-inversion meteorology that traps emissions near the surface.
 
-The three-symbol area-type differentiation confirms that **urban monitoring stations report consistently higher values** than suburban or rural sites within the same country and region. This finding has direct implications for population exposure assessment: European residents living in urban centres face meaningfully higher long-term pollutant burdens than the country-level statistics alone would suggest.
+The area-type differentiation confirms that **urban stations report consistently higher values** than suburban or rural sites in the same region — with direct implications for exposure assessment: urban residents face higher long-term pollutant burdens than country-level statistics alone suggest.
 
 ## Limitations
 
@@ -853,7 +853,7 @@ The following limitations should be considered when interpreting the dashboard o
 
 ## Conclusion
 
-The dashboard successfully communicates twelve years of European air quality data through animated spatial visualisation, seasonal comparison charts, live station monitoring, and AI-assisted interpretation. The animation extension delivers a compelling narrative tool for exploring how pollution evolves across Europe with the seasons and responds to decade-scale policy changes — an insight that no static chart can convey with equivalent immediacy. Future extensions could incorporate weather reanalysis overlays (ERA5 wind fields and boundary-layer height), country-level regression trend lines, a mobile-optimised layout, and automated alerting when live station values cross EAQI thresholds.
+The dashboard communicates twelve years of European air quality data through animated spatial visualisation, seasonal comparison charts, live monitoring, and AI-assisted interpretation. The animation extension is a compelling narrative tool for exploring how pollution evolves with the seasons and responds to decade-scale policy change — an immediacy no static chart matches. Future work could add weather reanalysis overlays (ERA5 wind fields, boundary-layer height), country-level trend lines, a mobile layout, and automated alerting when live values cross EAQI thresholds.
 
 \newpage
 
