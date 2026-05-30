@@ -200,7 +200,7 @@ def build_eaqi_legend(pollutant):
     return (
         '<div style="margin-top:8px;line-height:2.0">'
         f'<div style="font-size:14px;font-weight:700;color:inherit;margin-bottom:4px">'
-        f'European Air Quality Index (EAQI) &mdash; {pollutant}</div>'
+        f'European Air Quality Index (EAQI) &mdash; {pollutant} (&micro;g/m&sup3;)</div>'
         '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:0;margin-bottom:4px">'
         + "".join(swatches)
         + '</div>'
@@ -584,8 +584,8 @@ def hist_get_map_data(date_str, table_name, master_df=None):
     df = hist_get_map_data_cached(date_str, table_name)
     if master_df is not None and not master_df.empty:
         df = df.drop_duplicates(subset=["lat","lon"])
-        # Left-join preserves master station_name / area_type columns
         df = pd.merge(master_df, df, on=["lat","lon"], how="left")
+    df = df[(df["Value"].notna()) & (df["Value"] > 0)]
     pollutant = "PM2.5" if "6001" in table_name else "PM10"
     if not df.empty and "Value" in df.columns:
         thresholds = EAQI_THRESHOLDS.get(pollutant, EAQI_THRESHOLDS["PM10"])
@@ -739,10 +739,10 @@ def build_hist_avg_chart(df_avg, current_date, pollutant="PM10"):
 
     base = (alt.Chart(df).mark_line(color="gray", strokeWidth=2)
             .encode(x=alt.X("Date:T", title="Date"),
-                    y=alt.Y("AvgValue:Q", title="Daily Average Value",
+                    y=alt.Y("AvgValue:Q", title=f"Daily Average {pollutant} (µg/m³)",
                             scale=alt.Scale(domain=[0, y_max]),
                             axis=alt.Axis(titlePadding=15)))
-            .properties(height=300, title="Daily Average Values Over Time")
+            .properties(height=300, title=f"Daily Average {pollutant} Over Time")
             .interactive())
     dot = (alt.Chart(df)
            .mark_circle(color="red", size=100, opacity=1)
@@ -803,6 +803,16 @@ def build_yoy_chart(df_yoy, pollutant):
     )
 
     year_sel = alt.selection_point(fields=["YearStr"], bind="legend")
+    _year_domain = sorted(df_yoy["YearStr"].unique().tolist())
+    _year_palette = [
+        "#4477AA", "#EE6677", "#228833", "#CCBB44", "#66CCEE",
+        "#AA3377", "#BBBBBB", "#FF8C00", "#6B8E23", "#8B008B",
+        "#DC143C", "#00CED1", "#FF6347",
+    ]
+    year_color_scale = alt.Scale(
+        domain=_year_domain,
+        range=_year_palette[:len(_year_domain)],
+    )
     line = (
         alt.Chart(df_yoy)
         .mark_line(point=True, strokeWidth=2)
@@ -811,8 +821,8 @@ def build_yoy_chart(df_yoy, pollutant):
                     axis=alt.Axis(format="%b", tickCount="month", labelAngle=0)),
             y=alt.Y("AvgValue:Q", title=f"{pollutant} Monthly Avg (µg/m³)",
                     scale=alt.Scale(domain=[0, y_max]),
-                    axis=alt.Axis(titlePadding=15)),
-            color=alt.Color("YearStr:N", title="Year"),
+                    axis=alt.Axis(titlePadding=20)),
+            color=alt.Color("YearStr:N", scale=year_color_scale, title="Year"),
             opacity=alt.condition(year_sel, alt.value(1.0), alt.value(0.15)),
             tooltip=[
                 alt.Tooltip("YearStr:N", title="Year"),
