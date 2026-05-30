@@ -86,6 +86,7 @@ h1, h2, h3, h4, h5, h6 { color: #fafafa; }
 #deck-map canvas, #deck-hist-map canvas { outline: none; }
 
 #summary_cards { margin-top: -16px !important; }
+.form-control::placeholder { color: #999 !important; }
 
 /* ── Stats boxes ───────────────────────────────────────────────────────── */
 .stats-box {
