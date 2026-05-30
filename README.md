@@ -18,15 +18,28 @@ A Shiny/Python dashboard for exploring air quality data, featuring both live and
 
 ## Project Structure
 
-- `app.py` — Main entry point for the dashboard.
-- `live_tab.py` — UI and server logic for the live data tab.
-- `hist_tab.py` — UI and server logic for the historic data tab.
-- `shared.py` — Shared functions and constants.
-- `requirements.txt` — Python dependencies.
-- `station_metadata_clean.csv` — Station metadata.
-- `eeaopt.db` — DuckDB database with air quality data.
+- **Dashboard files**:
+    - `app.py` — Main entry point for the dashboard.
+    - `live_tab.py` — UI and server logic for the live data tab.
+    - `hist_tab.py` — UI and server logic for the historic data tab.
+    - `shared.py` — Shared functions and constants.
+    - `query_llm.py` — Logic for querying the language model in the historic data tab.
+    - `requirements.txt` — Python dependencies.
+    - `station_metadata_clean.csv` — Station metadata.
+    - `eeaopt.db` — DuckDB database with air quality data.
+
+- **Report files**:
+    - `report.qmd` — Project report in Quarto format.
+    - `report.pdf` — Project report as PDF.
+    - `apa.cls` — LaTeX class file for APA formatting (used in the report).
+    - `references_apa.bib` — BibTeX file with references for the report.
 
 ## Running the dashboard
+
+### On hosted website
+Simply go to the following link:
+
+[https://wismeclastudents.shinyapps.io/airquality-eu-dashboard/](https://wismeclastudents.shinyapps.io/airquality-eu-dashboard/)
 
 ### Local Setup
 1. Clone the repository and navigate to the project folder.
@@ -34,15 +47,10 @@ A Shiny/Python dashboard for exploring air quality data, featuring both live and
 	 ```
 	 pip install -r requirements.txt
 	 ```
-3. start the dashboard with:
+3. Start the dashboard with:
      ```
      shiny run app.py
      ```
-
-### On hosted website
-Simply go to the following link:
-
-[https://airquality-dashboard.shinyapps.io/airquality_dashboard/](https://airquality-dashboard.shinyapps.io/airquality_dashboard/)
 
 ## Requirements
 
