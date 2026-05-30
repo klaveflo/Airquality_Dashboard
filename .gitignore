@@ -17,5 +17,8 @@ data/
 # Ignore .streamlit folder holding secrets
 .streamlit/
 
-# Uncleaned station metadata
-station_metadata.csv
+# cleaned station metadata
+station_metadata_clean.csv
+
+# Derelict files
+derelict/
