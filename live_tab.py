@@ -216,7 +216,7 @@ def live_ui():
                         ),
                         ui.tags.p(
                             "The color of each station reflects its current European Air Quality Index "
-                            "(EAQI) category, from Good (blue) to Extremely Poor (dark red). The shape "
+                            "(EAQI) category, from Good (blue) to Extremely Poor (dark purple). The shape "
                             "tells you about the station's surroundings: solid dots are urban stations, "
                             "dots with a white border are suburban, and hollow rings are rural. This "
                             "distinction matters because air quality can vary significantly between a city "
@@ -560,12 +560,15 @@ def live_server(input, output, session):
             return ui.tags.div()
         return ui.tags.div(
             ui.hr(),
-            ui.layout_columns(
-                output_widget("line_chart"),
-                output_widget("breakdown_chart"),
-                col_widths=(6, 6),
+            ui.tags.div(
+                ui.layout_columns(
+                    output_widget("line_chart"),
+                    output_widget("breakdown_chart"),
+                    col_widths=(6, 6),
+                ),
+                ui.output_ui("summary_cards"),
+                style="display:flex; flex-direction:column; gap:4px;",
             ),
-            ui.output_ui("summary_cards"),
         )
 
     @reactive.calc

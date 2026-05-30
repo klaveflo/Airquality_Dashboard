@@ -328,8 +328,8 @@ def hist_ui():
                 ui.hr(),
                 ui.output_ui("hist_stats_box"),
                 ui.hr(),
-                ui.input_text("hist_llm_query", "Curious about a peak? Ask here:",
-                              placeholder="What could cause this peak?"),
+                ui.input_text("hist_llm_query", "Ask AI about the data:",
+                              placeholder="Leave empty to ask about this date, or type your own question"),
                 ui.input_action_button("hist_ask", "Ask AI", class_="btn-primary"),
                 ui.output_ui("hist_llm_response"),
             ),
@@ -580,8 +580,12 @@ def hist_server(input, output, session):
     @reactive.effect
     @reactive.event(input.hist_ask)
     def _hist_ask():
-        resp = ask_llm_about_peak(str(hist_current_date()), input.hist_pollutant(),
-                                   input.hist_country())
+        resp = ask_llm_about_peak(
+            str(hist_current_date()),
+            input.hist_pollutant(),
+            country=input.hist_country(),
+            user_query=input.hist_llm_query(),
+        )
         hist_llm_resp.set(resp)
 
     @output

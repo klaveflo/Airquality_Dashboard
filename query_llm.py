@@ -1,24 +1,28 @@
 import os
 from google import genai
 
-def ask_llm_about_peak(date_str, metric, country="ALL", context_data=None):
-    """
-    Sends a query to an LLM asking for an explanation of a peak on a given date.
-    Returns a 1-2 sentence response.
-    """
+def ask_llm_about_peak(date_str, metric, country="ALL", user_query=None):
+    """Query Gemini about air quality data. Uses user_query if provided, otherwise explains the date's peak."""
     if not os.environ.get("GEMINI_API_KEY"):
-        return "Error: GEMINI_API_KEY environment variable not found. Please set your API key to use the AI feature."
+        return "AI feature requires a Gemini API key. See README for setup."
 
     try:
-        # The client automatically picks up the GEMINI_API_KEY environment variable
         client = genai.Client()
-
         location = f"in {country}" if country != "ALL" else "in Europe"
-        prompt = (
-            f"Explain briefly in only 1-2 sentences what event could cause there to be an air quality ({metric}) "
-            f"peak on {date_str} {location}. Keep your response short and concise."
-        )
-        
+
+        if user_query and user_query.strip():
+            prompt = (
+                f"Context: The user is looking at air quality data ({metric}) "
+                f"{location} on {date_str}.\n\n"
+                f"Their question: {user_query}\n\n"
+                f"Answer concisely in 2-3 sentences based on this context."
+            )
+        else:
+            prompt = (
+                f"Explain briefly in 2-3 sentences what event could cause "
+                f"an air quality ({metric}) peak on {date_str} {location}."
+            )
+
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt
