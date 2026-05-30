@@ -68,53 +68,54 @@ format:
         \renewcommand{\headrulewidth}{0.3pt}
         \renewcommand{\headrule}{\hbox to\headwidth{\color{lightgray}\leaders\hrule height \headrulewidth\hfill}}
 
-        % BA-style title page
+        % Compact BA-style title page. The spacing is deliberately tight so all title information stays on one page.
         \makeatletter
         \renewcommand{\maketitle}{%
           \begin{titlepage}
           \thispagestyle{empty}
           \centering
-          \vspace*{0.75cm}
+          \vspace*{0.35cm}
 
           \IfFileExists{zhaw_logo.png}{%
-            \includegraphics[width=1.8cm]{zhaw_logo.png}\par
+            \includegraphics[width=1.65cm]{zhaw_logo.png}\par
           }{%
             {\sffamily\bfseries\Large ZHAW\par}
           }
 
-          \vspace{0.65cm}
+          \vspace{0.45cm}
 
-          {\large Zurich University of Applied Sciences\par}
-          \vspace{0.28cm}
-          {\large Department of Life Sciences and Facility Management\par}
-          \vspace{0.28cm}
-          {\large Institute for Computational Life Sciences\par}
+          {\normalsize Zurich University of Applied Sciences\par}
+          \vspace{0.20cm}
+          {\normalsize Department of Life Sciences and Facility Management\par}
+          \vspace{0.20cm}
+          {\normalsize Institute for Computational Life Sciences\par}
 
-          \vspace{1.75cm}
+          \vspace{1.25cm}
 
           {\Large\scshape Technical Project Report\par}
 
-          \vspace{0.9cm}
+          \vspace{0.65cm}
           {\color{rulegray}\rule{0.78\linewidth}{0.6pt}}\par
-          \vspace{0.55cm}
+          \vspace{0.42cm}
 
-          \begin{minipage}{0.80\linewidth}
+          \begin{minipage}{0.82\linewidth}
           \centering
-          {\LARGE\bfseries\color{titlegray}\@title\par}
-          \vspace{0.35cm}
-          {\large\color{titlegray}
+          {\Large\bfseries\color{titlegray}\@title\par}
+          \vspace{0.25cm}
+          {\normalsize\color{titlegray}
           Communication and Collaboration in Environmental Science\\
           Group Assignment, Spring 2026\par}
           \end{minipage}
 
-          \vspace{0.55cm}
+          \vspace{0.42cm}
           {\color{rulegray}\rule{0.78\linewidth}{0.6pt}}\par
 
-          \vspace{1.2cm}
+          \vspace{0.85cm}
 
-          \begin{minipage}{0.86\linewidth}
-          \begin{tabular}{@{}p{0.40\linewidth}@{\hspace{2.7cm}}p{0.24\linewidth}@{}}
-          \textit{Authors:} & \textit{Supervisor:}\\[0.25cm]
+          \begin{minipage}{0.72\linewidth}
+          \centering
+          \begin{tabular}{>{\centering\arraybackslash}p{0.45\linewidth} >{\centering\arraybackslash}p{0.45\linewidth}}
+          \textit{Authors:} & \textit{Supervisor:}\\[0.20cm]
           Lejla Beganovic & Patrick Laube\\
           Florian Klaver & \\
           Claudio Wismer & \\
@@ -123,16 +124,19 @@ format:
 
           \vfill
 
-          {\large Submitted on\par}
-          \vspace{0.25cm}
-          {\large \@date\par}
+          {\normalsize Submitted on\par}
+          \vspace{0.18cm}
+          {\normalsize \@date\par}
 
-          \vspace{0.55cm}
-          {\small Source code repository: \url{https://github.com/klaveflo/Airquality_Dashboard}\par}
+          \vspace{0.42cm}
+          \begin{minipage}{0.90\linewidth}
+          \centering
+          {\footnotesize Source code repository: \url{https://github.com/klaveflo/Airquality_Dashboard}\par}
+          \vspace{0.10cm}
+          {\footnotesize Hosted dashboard: \url{https://wismeclastudents.shinyapps.io/airquality-eu-dashboard/}\par}
+          \end{minipage}
 
-          \vspace{0.85cm}
-
-          \vspace*{0.75cm}
+          \vspace*{0.25cm}
           \end{titlepage}
           \clearpage
         }
@@ -639,7 +643,7 @@ The dashboard communicates twelve years of European air quality data through ani
 | Performance optimisation (lru\_cache) | $\checkmark$ | $\checkmark$ | $\checkmark$ |
 | Bug testing & quality assurance | $\checkmark$ | $\checkmark$ | $\checkmark$ |
 | Report writing | $\checkmark$ | $\checkmark$ | $\checkmark$ |
-| Screencast / video | $\checkmark$ | $\checkmark$ | $\checkmark$ |
+| Screencast / video | | | $\checkmark$ |
 
 : Individual contributions by team member {#tbl-contrib}
 
